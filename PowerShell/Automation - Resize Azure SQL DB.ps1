@@ -1,4 +1,4 @@
-#Copyright (c) 2016 Brent Stineman
+# Copyright (c) 2016 Brent Stineman
 #
 # Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
 #
@@ -15,6 +15,8 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
+# 2016/05/12 : Added use of Tenant ID and Subscription ID to ensure script is more resilient 
+#			   in multi-subscription environment. 
 workflow Resize-AzureSQLDatabase
 {   
 	# Specify input parameters here
@@ -22,11 +24,20 @@ workflow Resize-AzureSQLDatabase
 		# The name of the Automation Credential Asset this runbook will use to authenticate to Azure.
 		[parameter(Mandatory=$true)]
         [string]$CredentialAssetName,
+		
+        # The AD tenant where the ID is stored
+		[parameter(Mandatory=$true)]
+        [string]$TenantID,
         
-        # resource group taht contains the database
+        # The subscription that contains the resource we want to work with
+		[parameter(Mandatory=$true)]
+        [string]$SubscriptionId,
+		
+        # resource group that contains the database
     	[parameter(Mandatory=$true)]
         [string]$ResourceGroupName,
 
+        
 		# name of the database server
         [parameter(Mandatory=$true)]
         [string]$ServerName,
@@ -35,11 +46,11 @@ workflow Resize-AzureSQLDatabase
 		[parameter(Mandatory=$true)]
 		[string]$DatabaseName,
 
-		# Mandatory parameter of type DateTime
+		# The ddatabase edition
 		[parameter(Mandatory=$true)]
 		[string]$NewEdition,
 
-		# Mandatory parameter of type boolean
+		# optional, parameter of type boolean
 		[parameter(Mandatory=$false)]
         [string]$NewPricingTier
     )
@@ -52,11 +63,16 @@ workflow Resize-AzureSQLDatabase
 	Write-Output "retrieved credential"
 
     #Connect to your Azure Account
-    $Account = Login-AzureRmAccount -Credential $Cred
+    $Account = Login-AzureRmAccount -Credential $Cred -TenantId $TenantID
     if(!$Account) {
         Throw "Could not authenticate to Azure using the credential asset '${CredentialAssetName}'. Make sure the user name and password are correct."
     }
 	Write-Output "added account"
+
+	$Context = Select-AzureRmSubScription -SubscriptionId $SubscriptionId
+	if(!$Context) {
+		Throw "Could not set context."
+	}
 
 	if($NewEdition -eq "Basic")
 	{
