@@ -1,0 +1,661 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "deploymentPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "unique identifier/prefix for all resources in this deployment"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "VM name prefix"
+      }
+    },
+    "adminPassword": {
+      "type": "string",
+      "metadata": {
+        "description": "Image Publisher"
+      }
+    }
+  },
+  "variables": {
+    "basicStorageAccountName": "[concat(parameters('deploymentPrefix'),'BasicStorage')]",
+    "premiumStorageAccountName": "[concat(parameters('deploymentPrefix'),'PremiumStorage')]",
+    "storageAccountType": "Standard_LRS",
+    "publicIPLBAddressName": "[concat(parameters('deploymentPrefix'),'pubicLBIP')]",
+    "publicWebFTPIPAddressName": "[concat(parameters('deploymentPrefix'),'pubicWEBFTP')]",
+    "lbName": "[concat(parameters('deploymentPrefix'),'LoadBalancer')]",
+    "lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('lbName'))]",
+    "frontEndIPConfigID": "[concat(variables('lbID'),'/frontendIPConfigurations/loadBalancerFrontend')]",
+    "APPavailabilitySetName": "APPAvSet",
+    "vnetName": "[concat(parameters('deploymentPrefix'),'VNet')]",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
+    "appSubnetName": "subApplication",
+    "appSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables ('appSubnetName'))]",
+    "appserverInstanceCnt": 2,
+    "imagePublisher": "MicrosoftWindowsServer",
+    "imageOffer": "WindowsServer",
+    "imageSKU": "2012-R2-Datacenter",
+    "appServerVmSize": "Standard_A1",
+    "webftpVmSize": "Standard_A1",
+    "sqlVmSize": "Standard_A1",
+    "sqlserverInstanceCnt": 2,
+    "SQLavailabilitySetName": "SQLAvSet",
+    "jumpVmSize": "Standard_A1",
+    "infrastructureSubnetName": "subInfrastructure",
+    "infrastructureSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables ('infrastructureSubnetName'))]",
+    "DCserverInstanceCnt": 2,
+    "dcVmSize": "Standard_A1",
+    "DCavailabilitySetName": "DCAvSet",
+    "RPTVmSize": "Standard_A1"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('basicStorageAccountName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "Standard_LRS"
+      },
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('premiumStorageAccountName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "Premium_LRS"
+      },
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" }
+    },
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('APPavailabilitySetName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": { },
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" }
+    },
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('SQLavailabilitySetName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": { },
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" }
+    },
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[variables('DCavailabilitySetName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": { },
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPLBAddressName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "dnsSettings": {
+          "domainNameLabel": "[toLower(variables('publicIPLBAddressName'))]"
+        }
+      },
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicWebFTPIPAddressName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "dnsSettings": {
+          "domainNameLabel": "[toLower(variables('publicWebFTPIPAddressName'))]"
+        },
+        "ipConfiguration": {
+          "id": "[resourceId('Microsoft.Network/networkInterfaces/ipConfigurations', concat(parameters('deploymentPrefix'), 'WebFTPNIC00'), 'WebFTPNIC00-IP')]"
+        }
+      },
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('vnetName')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.142.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('appSubnetName')]",
+            "properties": {
+              "addressPrefix": "10.142.50.0/24"
+            }
+          },
+          {
+            "name": "[variables('infrastructureSubnetName')]",
+            "properties": {
+              "addressPrefix": "10.142.52.0/24"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/loadBalancers",
+      "name": "[variables('lbName')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPLBAddressName'))]"
+      ],
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "LoadBalancerFrontend",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPLBAddressName'))]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "LoadBalancerBackend"
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('lbName')), '/frontendIpConfigurations/LoadBalancerFrontend')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('lbName')), '/backendAddressPools/LoadBalancerBackend')]"
+              },
+              "probe": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('lbName')), '/probes/lbprobe')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 80,
+              "backendPort": 80,
+              "idleTimeoutInMinutes": 15
+            },
+            "Name": "HTTP-APP"
+          }
+        ],
+        "probes": [
+          {
+            "properties": {
+              "protocol": "Tcp",
+              "port": 80,
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
+            },
+            "name": "lbprobe"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/loadBalancers/inboundNatRules",
+      "name": "[concat(variables('lbName'), '/', 'RDP-APPVM', padLeft(copyindex(),2,'0'))]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "lbNatLoop",
+        "count": "[variables('appserverInstanceCnt')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/loadBalancers/', variables('lbName'))]"
+      ],
+      "properties": {
+        "frontendIPConfiguration": {
+          "id": "[variables('frontEndIPConfigID')]"
+        },
+        "protocol": "tcp",
+        "frontendPort": "[copyIndex(5000)]",
+        "backendPort": 3389,
+        "enableFloatingIP": false
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('deploymentPrefix'), 'AppNIC', padLeft(copyindex(),2,'0'))]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "copy": {
+        "name": "nicLoop",
+        "count": "[variables('appserverInstanceCnt')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('lbName'))]",
+        "[concat('Microsoft.Network/loadBalancers/', variables('lbName'), '/inboundNatRules/RDP-AppVM', padLeft(copyindex(),2,'0'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat('10.142.50.', copyIndex(100))]",
+              "subnet": {
+                "id": "[variables('appSubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(variables('lbID'), '/backendAddressPools/LoadBalancerBackend')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(variables('lbID'),'/inboundNatRules/RDP-AppVM', padLeft(copyindex(),2,'0'))]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('deploymentPrefix'), 'APPPRD', padLeft(copyindex(),2,'0'))]",
+      "copy": {
+        "name": "virtualMachineLoop",
+        "count": "[variables('appserverInstanceCnt')]"
+      },
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('basicStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('deploymentPrefix'), 'AppNIC', padLeft(copyindex(),2,'0'))]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('APPavailabilitySetName'))]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('APPavailabilitySetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[variables('appServerVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('deploymentPrefix'), 'APPPRD', padLeft(copyindex(),2,'0'))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net/vhds/',parameters('deploymentPrefix'), 'APPPRD', padLeft(copyindex(),2,'0'), '-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('deploymentPrefix'), 'AppNIC', padLeft(copyindex(),2,'0')))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('deploymentPrefix'), 'WebFTPNIC00')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]",
+        "[concat('Microsoft.Network/publicIPAddresses/',variables('publicWebFTPIPAddressName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "WebFTPNIC00-IP",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.142.50.30",
+              "subnet": {
+                "id": "[variables('appSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicWebFTPIPAddressName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('deploymentPrefix'), 'WEBPRD00')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('basicStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('deploymentPrefix'), 'WebFTPNIC00')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('webftpVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('deploymentPrefix'), 'WEBPRD00')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net/vhds/',parameters('deploymentPrefix'), 'WEBPRD00-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('deploymentPrefix'), 'WebFTPNIC00'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('deploymentPrefix'), 'SQLNIC', padLeft(copyindex(),2,'0'))]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "copy": {
+        "name": "nicLoop",
+        "count": "[variables('sqlserverInstanceCnt')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat('10.142.50.', copyIndex(120))]",
+              "subnet": {
+                "id": "[variables('appSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('deploymentPrefix'), 'SQLPRD', padLeft(copyindex(),2,'0'))]",
+      "copy": {
+        "name": "virtualMachineLoop",
+        "count": "[variables('SQLserverInstanceCnt')]"
+      },
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('basicStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('deploymentPrefix'), 'SQLNIC', padLeft(copyindex(),2,'0'))]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('SQLavailabilitySetName'))]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('SQLavailabilitySetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[variables('sqlVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('deploymentPrefix'), 'SQLPRD', padLeft(copyindex(),2,'0'))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net/vhds/',parameters('deploymentPrefix'), 'SQLPRD', padLeft(copyindex(),2,'0'), '-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('deploymentPrefix'), 'SQLNIC', padLeft(copyindex(),2,'0')))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('deploymentPrefix'), 'DCNIC', padLeft(copyindex(),2,'0'))]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "copy": {
+        "name": "nicLoop",
+        "count": "[variables('sqlserverInstanceCnt')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat('10.142.52.', copyIndex(21))]",
+              "subnet": {
+                "id": "[variables('infrastructureSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('deploymentPrefix'), 'DCPRD', padLeft(copyindex(),2,'0'))]",
+      "copy": {
+        "name": "virtualMachineLoop",
+        "count": "[variables('DCserverInstanceCnt')]"
+      },
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('basicStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('deploymentPrefix'), 'DCNIC', padLeft(copyindex(),2,'0'))]",
+        "[concat('Microsoft.Compute/availabilitySets/', variables('DCavailabilitySetName'))]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('DCavailabilitySetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[variables('dcVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('deploymentPrefix'), 'DCPRD', padLeft(copyindex(),2,'0'))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net/vhds/',parameters('deploymentPrefix'), 'DCPRD', padLeft(copyindex(),2,'0'), '-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('deploymentPrefix'), 'DCNIC', padLeft(copyindex(),2,'0')))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('deploymentPrefix'), 'RPTNIC00')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.142.50.70",
+              "subnet": {
+                "id": "[variables('appSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('deploymentPrefix'), 'REPPRD00')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "deploymentId": "[parameters('deploymentPrefix')]" },
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('basicStorageAccountName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('deploymentPrefix'), 'RPTNIC00')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('RPTVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('deploymentPrefix'), 'REPPRD00')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('imagePublisher')]",
+            "offer": "[variables('imageOffer')]",
+            "sku": "[variables('imageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net/vhds/',parameters('deploymentPrefix'), 'REPPRD00-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('deploymentPrefix'), 'RPTNIC00'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',variables('basicStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    }
+  ]
+}
+
