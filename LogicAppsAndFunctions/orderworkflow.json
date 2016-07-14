@@ -1,0 +1,105 @@
+{
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2015-08-01-preview/workflowdefinition.json#",
+    "actions": {
+        "CheckOrderComplete": {
+            "conditions": [
+                {
+                    "dependsOn": "Response"
+                }
+            ],
+            "inputs": {
+                "body": "@triggerBody()",
+                "function": {
+                    "id": "/subscriptions/31971d65-ad59-47bf-af6e-3cefcc217664/resourceGroups/Genetec/providers/Microsoft.Web/sites/GenetecApp/functions/CheckOrderComplete"
+                }
+            },
+            "type": "Function"
+        },
+        "Execute_stored_procedure": {
+            "conditions": [],
+            "inputs": {
+                "body": {
+                    "Customer": "@{triggerBody()?['customer']}",
+                    "Product": "@{triggerBody()?['product']}"
+                },
+                "host": {
+                    "api": {
+                        "runtimeUrl": "https://logic-apis-northcentralus.azure-apim.net/apim/sql"
+                    },
+                    "connection": {
+                        "name": "@parameters('$connections')['sql_1']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/datasets/default/procedures/@{encodeURIComponent(encodeURIComponent(string('[dbo].[spINSERT_NewOrder]')))}"
+            },
+            "type": "ApiConnection"
+        },
+        "Response": {
+            "conditions": [
+                {
+                    "dependsOn": "Execute_stored_procedure"
+                }
+            ],
+            "inputs": {
+                "body": "Order Recieved",
+                "statusCode": 200
+            },
+            "type": "Response"
+        },
+        "Send_message.": {
+            "conditions": [
+                {
+                    "expression": "@equals(outputs('CheckOrderComplete')['statusCode'], 200)"
+                },
+                {
+                    "dependsOn": "CheckOrderComplete"
+                }
+            ],
+            "inputs": {
+                "body": {
+                    "ContentData": "@{encodeBase64(triggerBody()?['customer'])}",
+                    "ContentType": "application/json"
+                },
+                "host": {
+                    "api": {
+                        "runtimeUrl": "https://logic-apis-northcentralus.azure-apim.net/apim/servicebus"
+                    },
+                    "connection": {
+                        "name": "@parameters('$connections')['servicebus']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "path": "/@{encodeURIComponent(string('orderworkflow'))}/messages"
+            },
+            "type": "ApiConnection"
+        }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+        "$connections": {
+            "defaultValue": {},
+            "type": "Object"
+        }
+    },
+    "triggers": {
+        "manual": {
+            "inputs": {
+                "schema": {
+                    "properties": {
+                        "customer": {
+                            "type": "string"
+                        },
+                        "product": {
+                            "type": "string"
+                        }
+                    },
+                    "title": "Product Order",
+                    "type": "object"
+                }
+            },
+            "type": "Manual"
+        }
+    }
+}
