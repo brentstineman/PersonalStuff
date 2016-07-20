@@ -1071,6 +1071,9 @@
             },
             "httpGatewayEndpointPort": "[variables('svcFabCluster')['httpGatewayPort']]",
             "isPrimary": false,
+            "placementProperties": {
+              "isDMZ": "true"
+            },
             "vmInstanceCount": "[variables('nodesFrontEnd')['capacity']]"
           },
           {
@@ -1087,6 +1090,9 @@
             },
             "httpGatewayEndpointPort": "[variables('svcFabCluster')['httpGatewayPort']]",
             "isPrimary": false,
+            "placementProperties": {
+              "isDMZ": "false"
+            },
             "vmInstanceCount": "[variables('nodesBackEnd')['capacity']]"
           },
           {
@@ -1103,6 +1109,9 @@
             },
             "httpGatewayEndpointPort": "[variables('svcFabCluster')['httpGatewayPort']]",
             "isPrimary": true,
+            "placementProperties": {
+              "isDMZ": "false"
+            },            
             "vmInstanceCount": "[variables('nodesMgmnt')['capacity']]"
           }
         ],
