@@ -259,15 +259,41 @@
             }
           },
           {
+            "name": "allowSvcFabSMB",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "445",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 3940,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "allowVNetRDP",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 3950,
+              "direction": "Inbound"
+            }
+          },
+          {
             "name": "allowJumpBoxRDP",
             "properties": {
               "protocol": "*",
               "sourcePortRange": "*",
               "destinationPortRange": "3389",
               "sourceAddressPrefix": "*",
-              "destinationAddressPrefix": "*",
+              "destinationAddressPrefix": "[variables('rdpMachine')['ipAddr']]",
               "access": "Allow",
-              "priority": 3940,
+              "priority": 3960,
               "direction": "Inbound"
             }
           },
@@ -351,7 +377,20 @@
             }
           },
           {
-            "name": "allowRDP",
+            "name": "allowSvcFabSMB",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "445",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 3940,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "allowVNetRDP",
             "properties": {
               "protocol": "*",
               "sourcePortRange": "*",
@@ -359,7 +398,7 @@
               "sourceAddressPrefix": "VirtualNetwork",
               "destinationAddressPrefix": "*",
               "access": "Allow",
-              "priority": 3940,
+              "priority": 3950,
               "direction": "Inbound"
             }
           },
@@ -443,7 +482,20 @@
             }
           },
           {
-            "name": "allowRDP",
+            "name": "allowSvcFabSMB",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "445",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 3940,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "allowVNetRDP",
             "properties": {
               "protocol": "*",
               "sourcePortRange": "*",
@@ -451,7 +503,7 @@
               "sourceAddressPrefix": "VirtualNetwork",
               "destinationAddressPrefix": "*",
               "access": "Allow",
-              "priority": 3940,
+              "priority": 3950,
               "direction": "Inbound"
             }
           },
