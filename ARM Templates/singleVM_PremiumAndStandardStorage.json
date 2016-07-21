@@ -1,0 +1,209 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourcePrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of your cluster - Between 3 and 23 characters. Letters and numbers only"
+      }
+    },
+    "adminUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "Remote desktop user Id"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Remote desktop user password. Must be a strong password"
+      }
+    }
+  },
+  "variables": {
+    "vmStorageAccountName1": "[toLower(concat(parameters('resourcePrefix'), uniqueString(resourceGroup().id), '1' ))]",
+    "vmStorageAccountName2": "[toLower(concat(parameters('resourcePrefix'), uniqueString(resourceGroup().id), '2' ))]",
+    "vmStorageAccountContainerName": "vhds",
+    "virtualNetworkName": "[concat(parameters('resourcePrefix'), 'VNet')]",
+    "addressPrefix": "10.0.0.0/16",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "subnetDefault" : {
+      "Name": "Default",
+      "CIDR": "10.0.1.0/24",
+      "Ref": "[concat(variables('vnetID'),'/subnets/', 'Default')]"
+    },
+    "publicIp" : {
+      "Name": "[concat(parameters('resourcePrefix'), '_publicIP')]",
+      "AddressType": "Dynamic",
+      "DNS": "[toLower(concat(parameters('resourcePrefix'), 'publicIP'))]"
+    },
+    "vmDefault" : {
+      "Name": "[concat(parameters('resourcePrefix'), '-vmRDP')]",
+      "nicName": "[concat(parameters('resourcePrefix'), '-nicRDP')]",
+      "TypeSize" : "Standard_DS1",
+      "ImageReference": {
+        "publisher": "MicrosoftWindowsServer",
+        "offer": "WindowsServer",
+        "sku": "2012-R2-Datacenter",
+        "version": "latest"
+      }
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('vmStorageAccountName1')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "Premium_LRS"
+      },
+      "tags": {
+        "ResourceTag": "[parameters('resourcePrefix')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('vmStorageAccountName2')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "Standard_LRS"
+      },
+      "tags": {
+        "ResourceTag": "[parameters('resourcePrefix')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('subnetDefault')['Name']]",
+            "properties": {
+              "addressPrefix": "[variables('subnetDefault')['CIDR']]"
+            }
+          }
+        ]
+      },
+      "tags": {
+        "ResourceTag": "[parameters('resourcePrefix')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIp')['Name']]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "dnsSettings": {
+          "domainNameLabel": "[variables('publicIp')['DNS']]"
+        },
+        "publicIPAllocationMethod": "[variables('publicIp')['AddressType']]"
+      },
+      "tags": {
+        "ResourceTag": "[parameters('resourcePrefix')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('vmDefault')['nicName']]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIp')['Name'])]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIp')['Name'])]"
+              },
+              "subnet": {
+                "id": "[variables('subnetDefault')['Ref']]"
+              }
+            }
+          }
+        ]
+      },
+      "tags": {
+        "ResourceTag": "[parameters('resourcePrefix')]"
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[variables('vmDefault')['Name']]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('vmStorageAccountName1'))]",
+        "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('vmStorageAccountName2'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('vmDefault')['nicName'])]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('vmDefault')['TypeSize']]"
+        },
+        "osProfile": {
+          "computerName": "[variables('vmDefault')['Name']]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": "[variables('vmDefault')['ImageReference']]",
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat('http://',variables('vmStorageAccountName1'),'.blob.core.windows.net/', variables('vmStorageAccountContainerName'),'/', variables('vmDefault')['Name'], '-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "vhd": {
+                "uri":"[concat('http://',variables('vmStorageAccountName2'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'),'/', variables('vmDefault')['Name'],'data-1.vhd')]"
+
+                },
+              "name":"[concat(variables('vmDefault')['Name'],'-data-disk1')]",
+              "createOption": "empty",
+              "caching" : "None",
+              "diskSizeGB": 128,
+              "lun": 0
+            }
+        ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('vmDefault')['nicName'])]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',variables('vmStorageAccountName2'),'.blob.core.windows.net')]"
+          }
+        }
+      },
+      "tags": {
+        "ResourceTag": "[parameters('resourcePrefix')]"
+      }
+    }
+  ]
+}
