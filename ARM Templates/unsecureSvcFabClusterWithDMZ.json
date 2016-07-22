@@ -43,7 +43,7 @@
     },
     "loadBalancedAppPort2": {
       "type": "int",
-      "defaultValue": 8081,
+      "defaultValue": 443,
       "metadata": {
         "description": "Input endpoint2 for the application to use. Replace it with what your application uses"
       }
@@ -124,7 +124,7 @@
     "lbBackEnd" : {
       "Name": "BackEndLoadBalancer",
       "lbIPAddress" : "10.0.2.4",
-      "IPConfig": "[concat(variables('lbidBackEnd'),'/frontendIPConfigurations/LoadBalancerIPConfig')]",
+      "IPConfig": "[concat(variables('lbidBackEnd'),'/frontendIPConfigurations/LoadBalancerFrontend-internal')]",
       "PoolID": "[concat(variables('lbidBackEnd'),'/backendAddressPools/LoadBalancerBEAddressPool')]",
       "ProbeID": "[concat(variables('lbidBackEnd'),'/probes/FabricGatewayProbe')]",
       "HttpProbeID": "[concat(variables('lbidBackEnd'),'/probes/FabricHttpGatewayProbe')]"
@@ -723,6 +723,66 @@
         "backendAddressPools": [
           {
             "name": "LoadBalancerBEAddressPool"
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "name": "AppPortLBRule1",
+            "properties": {
+              "backendAddressPool": {
+                "id": "[variables('lbBackEnd')['PoolID']]"
+              },
+              "backendPort": "[parameters('loadBalancedAppPort1')]",
+              "enableFloatingIP": false,
+              "frontendIPConfiguration": {
+                "id": "[variables('lbBackEnd')['IPConfig']]"
+              },
+              "frontendPort": "[parameters('loadBalancedAppPort1')]",
+              "idleTimeoutInMinutes": 5,
+              "probe": {
+                "id": "[concat(variables('lbidBackEnd'),'/probes/AppPortProbe1')]"
+              },
+              "protocol": "Tcp"
+            }
+          },
+          {
+            "name": "AppPortLBRule2",
+            "properties": {
+              "backendAddressPool": {
+                "id": "[variables('lbBackEnd')['PoolID']]"
+              },
+              "backendPort": "[parameters('loadBalancedAppPort2')]",
+              "enableFloatingIP": false,
+              "frontendIPConfiguration": {
+                "id": "[variables('lbBackEnd')['IPConfig']]"
+              },
+              "frontendPort": "[parameters('loadBalancedAppPort2')]",
+              "idleTimeoutInMinutes": 5,
+              "probe": {
+                "id": "[concat(variables('lbidBackEnd'),'/probes/AppPortProbe2')]"
+              },
+              "protocol": "Tcp"
+            }
+          }
+        ],
+        "probes": [
+          {
+            "name": "AppPortProbe1",
+            "properties": {
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2,
+              "port": "[parameters('loadBalancedAppPort1')]",
+              "protocol": "Tcp"
+            }
+          },
+          {
+            "name": "AppPortProbe2",
+            "properties": {
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2,
+              "port": "[parameters('loadBalancedAppPort2')]",
+              "protocol": "Tcp"
+            }
           }
         ]
       },
