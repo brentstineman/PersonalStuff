@@ -169,7 +169,13 @@
     }    
   },
   "variables": {
-    "vmStorageAccountName": "[toLower(concat(uniqueString(resourceGroup().id), '1' ))]",
+    "saSuffix" : "[tolower(concat(parameters('clusterName'), 'sa'))]",
+    "uniqueStringArray": [
+      "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '0')))]",
+      "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '1')))]",
+      "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '2')))]"
+    ],
+    "saCount": "[length(variables('uniqueStringArray'))]",
     "vmStorageAccountContainerName": "vhds",
     "virtualNetworkName": "[concat(parameters('clusterName'), 'Vnet')]",
     "addressPrefix": "10.0.0.0/16",
@@ -273,8 +279,12 @@
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Storage/storageAccounts",
-      "name": "[variables('vmStorageAccountName')]",
+      "name": "[concat(variables('uniqueStringArray')[copyIndex()], variables('saSuffix'))]",
       "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "storageLoop",
+        "count": "[variables('saCount')]"
+      },
       "properties": {
         "accountType": "[parameters('storageAccountType')]"
       },
@@ -984,7 +994,9 @@
       "name": "[variables('nodesFrontEnd')['TypeName']]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', variables('vmStorageAccountName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[0], variables('saSuffix'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[1], variables('saSuffix'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[2], variables('saSuffix'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
         "[concat('Microsoft.Network/loadBalancers/', variables('lbFrontEnd')['Name'])]"
@@ -1052,7 +1064,9 @@
             "imageReference": "[variables('nodeImageReference')]",
             "osDisk": {
               "vhdContainers": [
-                "[concat('http://',variables('vmStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'))]"
+                "[concat('https://', variables('uniqueStringArray')[0], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]",
+                "[concat('https://', variables('uniqueStringArray')[1], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]",
+                "[concat('https://', variables('uniqueStringArray')[2], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]"
               ],
               "name": "vmssosdisk",
               "caching": "ReadOnly",
@@ -1077,7 +1091,9 @@
       "name": "[variables('nodesBackEnd')['TypeName']]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', variables('vmStorageAccountName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[0], variables('saSuffix'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[1], variables('saSuffix'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[2], variables('saSuffix'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
         "[concat('Microsoft.Network/loadBalancers/', variables('lbBackEnd')['Name'])]"
@@ -1145,7 +1161,9 @@
             "imageReference": "[variables('nodeImageReference')]",
             "osDisk": {
               "vhdContainers": [
-                "[concat('http://',variables('vmStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'))]"
+                "[concat('https://', variables('uniqueStringArray')[0], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]",
+                "[concat('https://', variables('uniqueStringArray')[1], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]",
+                "[concat('https://', variables('uniqueStringArray')[2], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]"
               ],
               "name": "vmssosdisk",
               "caching": "ReadOnly",
@@ -1170,7 +1188,9 @@
       "name": "[variables('nodesMgmnt')['TypeName']]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', variables('vmStorageAccountName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[0], variables('saSuffix'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[1], variables('saSuffix'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[2], variables('saSuffix'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
         "[concat('Microsoft.Network/loadBalancers/', variables('lbMgmnt')['Name'])]"
@@ -1238,7 +1258,9 @@
             "imageReference": "[variables('nodeImageReference')]",
             "osDisk": {
               "vhdContainers": [
-                "[concat('http://',variables('vmStorageAccountName'),'.blob.core.windows.net/',variables('vmStorageAccountContainerName'))]"
+                "[concat('https://', variables('uniqueStringArray')[0], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]",
+                "[concat('https://', variables('uniqueStringArray')[1], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]",
+                "[concat('https://', variables('uniqueStringArray')[2], variables('saSuffix'), '.blob.core.windows.net/', variables('vmStorageAccountContainerName'))]"
               ],
               "name": "vmssosdisk",
               "caching": "ReadOnly",
@@ -1399,7 +1421,7 @@
       "name": "[variables('rdpMachine')['Name']]",
       "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', variables('vmStorageAccountName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
         "[concat('Microsoft.Network/networkInterfaces/', variables('rdpMachine')['nicName'])]"
@@ -1418,7 +1440,7 @@
           "osDisk": {
             "name": "osdisk",
             "vhd": {
-              "uri": "[concat('http://',variables('vmStorageAccountName'),'.blob.core.windows.net/vhds/', variables('rdpMachine')['Name'], '-osdisk.vhd')]"
+              "uri": "[concat('http://',variables('supportLogStorageAccountName'),'.blob.core.windows.net/vhds/', variables('rdpMachine')['Name'], '-osdisk.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
