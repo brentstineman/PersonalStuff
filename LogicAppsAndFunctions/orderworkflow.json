@@ -10,7 +10,7 @@
             "inputs": {
                 "body": "@triggerBody()",
                 "function": {
-                    "id": "/subscriptions/mysub/resourceGroups/mycompany/providers/Microsoft.Web/sites/GenetecApp/functions/CheckOrderComplete"
+                    "id": "/subscriptions/mysub/resourceGroups/mycompany/providers/Microsoft.Web/sites/MyApp/functions/CheckOrderComplete"
                 }
             },
             "type": "Function"
