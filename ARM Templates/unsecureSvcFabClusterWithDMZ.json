@@ -1,3 +1,12 @@
+/*
+* Created By: Brent Stineman
+* This template provides an example of creating a service fabric cluster with network level security
+* isolation between nodes. 
+*
+* Note: the cluster itself is not a 'secure' cluster. This template should be used as an example only. 
+* for more information on this template, please see
+*     https://brentdacodemonkey.wordpress.com/2016/08/01/network-isolationsecurity-with-azure-service-fabric/
+*/
 {
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
   "contentVersion": "1.0.0.0",
@@ -5,13 +14,13 @@
     "clusterName": {
       "type": "string",
       "metadata": {
-        "description": "Name of your cluster - Between 3 and 23 characters. Letters and numbers only"
+        "description": "Name of your cluster - Between 3 and 23 characters. Letters and numbers only. Also used as a prefix for many resources."
       }
     },
     "adminUserName": {
       "type": "string",
       "metadata": {
-        "description": "Remote desktop user Id"
+        "description": "Virtual Machine administrative user name"
       }
     },
     "adminPassword": {
@@ -24,14 +33,14 @@
       "type": "int",
       "defaultValue": 19000,
       "metadata": {
-        "description": "TCP Client Connection end point to perform management operations on this cluster"
+        "description": "Port for TCP Client Connection end point to perform management operations on this cluster"
       }
     },
     "fabricHttpGatewayPort": {
       "type": "int",
       "defaultValue": 19080,
       "metadata": {
-        "description": "Http Client Connection end point to perform management operations on this cluster"
+        "description": "Port for Http Client Connection end point to perform management operations on this cluster"
       }
     },
     "frontEndLoadBalancedAppPort1": {
@@ -103,42 +112,42 @@
       "type": "string",
       "defaultValue": "Standard_D2",
       "metadata": {
-        "description": "Size/Sku used for the Front End VMs"
+        "description": "Size/Sku used for the Front End node type instances"
       }
     },
     "frontEndVMInstanceCnt": {
       "type": "int",
       "defaultValue": 3,
       "metadata": {
-        "description": "Number of  Front End VMs"
+        "description": "Number of Front End node type instances"
       }
     },
     "backEndVMSize": {
       "type": "string",
       "defaultValue": "Standard_D2",
       "metadata": {
-        "description": "Size/Sku used for the Back End VMs"
+        "description": "Size/Sku used for the Back End node type instances"
       }
     },
     "backEndVMInstanceCnt": {
       "type": "int",
       "defaultValue": 3,
       "metadata": {
-        "description": "Number of  Back End VMs"
+        "description": "Number of Back End node type instances"
       }
     },
     "mgmntVMSize": {
       "type": "string",
       "defaultValue": "Standard_D2",
       "metadata": {
-        "description": "Size/Sku used for the Management VMs"
+        "description": "Size/Sku used for the Management node type instances"
       }
     },
     "mgmntVMInstanceCnt": {
       "type": "int",
       "defaultValue": 3,
       "metadata": {
-        "description": "Number of  Management VMs"
+        "description": "Number of Management node type instances"
       }
     },
     "clusterDurabilityLevel": {
@@ -170,21 +179,26 @@
   },
   "variables": {
     "saSuffix" : "[tolower(concat(parameters('clusterName'), 'sa'))]",
+    /* storage accounts used by the VM scale set */
     "uniqueStringArray": [
       "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '0')))]",
       "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '1')))]",
-      "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '2')))]"
+      "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '2')))]",
+      "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '3')))]",
+      "[concat(uniqueString(concat(resourceGroup().id, variables('saSuffix'), '4')))]"
     ],
     "saCount": "[length(variables('uniqueStringArray'))]",
     "vmStorageAccountContainerName": "vhds",
-    "virtualNetworkName": "[concat(parameters('clusterName'), 'Vnet')]",
-    "addressPrefix": "10.0.0.0/16",
+    /* cluster node type OS image */
     "nodeImageReference": {
       "publisher": "MicrosoftWindowsServer",
       "offer": "WindowsServer",
       "sku": "2012-R2-Datacenter",
       "version": "latest"
     },
+    /* virtual network configuration */
+    "virtualNetworkName": "[concat(parameters('clusterName'), 'Vnet')]",
+    "addressPrefix": "10.0.0.0/16",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
     "overProvision": "false",
     "supportLogStorageAccountName": "[toLower( concat( uniqueString(resourceGroup().id),'2'))]",
@@ -193,18 +207,23 @@
       "CIDR": "10.0.1.0/24",
       "Ref": "[concat(variables('vnetID'),'/subnets/FrontEnd')]"
     },
+    "subnetBackEnd" : {
+      "Name": "BackEnd",
+      "CIDR": "10.0.2.0/24",
+      "Ref": "[concat(variables('vnetID'),'/subnets/BackEnd')]"
+    },
+    "subnetManagement" : {
+      "Name": "Management",
+      "CIDR": "10.0.3.0/24",
+      "Ref": "[concat(variables('vnetID'),'/subnets/Management')]"
+    },
+    /* Front End Public IP and Load Balancer settings */
     "ipFrontEnd" : {
       "Name": "[concat(parameters('clusterName'), '_FrontEndIP')]",
       "AddressType": "Dynamic",
       "DNS": "[toLower(concat(parameters('clusterName'), 'FrontEnd'))]"
     },
     "lbidFrontEnd": "[resourceId('Microsoft.Network/loadBalancers','FrontEndLoadBalancer')]",
-    "nodesFrontEnd" : {
-      "TypeName": "FrontEnd",
-      "TypeSize": "[parameters('frontEndVMSize')]",
-      "Capacity": "[parameters('frontEndVMInstanceCnt')]",
-      "nicName": "nicFrontEnd"
-    },
     "lbFrontEnd" : {
       "Name": "FrontEndLoadBalancer",
       "IPConfig": "[concat(variables('lbidFrontEnd'),'/frontendIPConfigurations/LoadBalancerIPConfig')]",
@@ -212,18 +231,8 @@
       "ProbeID": "[concat(variables('lbidFrontEnd'),'/probes/FabricGatewayProbe')]",
       "HttpProbeID": "[concat(variables('lbidFrontEnd'),'/probes/FabricHttpGatewayProbe')]"
     },
-    "subnetBackEnd" : {
-      "Name": "BackEnd",
-      "CIDR": "10.0.2.0/24",
-      "Ref": "[concat(variables('vnetID'),'/subnets/BackEnd')]"
-    },
+    /* Back End Load Balancer settings, uses a private IP from that subnet */
     "lbidBackEnd": "[resourceId('Microsoft.Network/loadBalancers','BackEndLoadBalancer')]",
-    "nodesBackEnd" : {
-      "TypeName": "BackEnd",
-      "TypeSize": "[parameters('backEndVMSize')]",
-      "Capacity": "[parameters('backEndVMInstanceCnt')]",
-      "nicName": "nicBackEnd"
-    },
     "lbBackEnd" : {
       "Name": "BackEndLoadBalancer",
       "lbIPAddress" : "10.0.2.4",
@@ -232,23 +241,13 @@
       "ProbeID": "[concat(variables('lbidBackEnd'),'/probes/FabricGatewayProbe')]",
       "HttpProbeID": "[concat(variables('lbidBackEnd'),'/probes/FabricHttpGatewayProbe')]"
     },
-    "subnetManagement" : {
-      "Name": "Management",
-      "CIDR": "10.0.3.0/24",
-      "Ref": "[concat(variables('vnetID'),'/subnets/Management')]"
-    },
+    /* Management zone Public IP and Load Balancer settings */
     "ipMgmnt" : {
       "Name": "[concat(parameters('clusterName'), '_MgmntIP')]",
       "AddressType": "Dynamic",
       "DNS": "[toLower(concat(parameters('clusterName'), 'Mgmnt'))]"
     },
     "lbidMgmnt": "[resourceId('Microsoft.Network/loadBalancers','MgmntLoadBalancer')]",
-    "nodesMgmnt" : {
-      "TypeName": "Mgmnt",
-      "TypeSize": "[parameters('mgmntVMSize')]",
-      "Capacity": "[parameters('mgmntVMInstanceCnt')]",
-      "nicName": "nicMgmnt"
-    },
     "lbMgmnt" : {
       "Name": "MgmntLoadBalancer",
       "IPConfig": "[concat(variables('lbidMgmnt'),'/frontendIPConfigurations/LoadBalancerIPConfig')]",
@@ -256,6 +255,26 @@
       "ProbeID": "[concat(variables('lbidMgmnt'),'/probes/FabricGatewayProbe')]",
       "HttpProbeID": "[concat(variables('lbidMgmnt'),'/probes/FabricHttpGatewayProbe')]"
     },
+    /* settings for each node type (vm scale set) */
+    "nodesFrontEnd" : {
+      "TypeName": "FrontEnd",
+      "TypeSize": "[parameters('frontEndVMSize')]",
+      "Capacity": "[parameters('frontEndVMInstanceCnt')]",
+      "nicName": "nicFrontEnd"
+    },
+    "nodesBackEnd" : {
+      "TypeName": "BackEnd",
+      "TypeSize": "[parameters('backEndVMSize')]",
+      "Capacity": "[parameters('backEndVMInstanceCnt')]",
+      "nicName": "nicBackEnd"
+    },
+    "nodesMgmnt" : {
+      "TypeName": "Mgmnt",
+      "TypeSize": "[parameters('mgmntVMSize')]",
+      "Capacity": "[parameters('mgmntVMInstanceCnt')]",
+      "nicName": "nicMgmnt"
+    },
+    /* fabric cluster port settings */
     "svcFabCluster" : {
       "tcpGatewayPort": "[parameters('fabricTcpGatewayPort')]",
       "httpGatewayPort": "[parameters('fabricHttpGatewayPort')]",
@@ -265,6 +284,7 @@
       "ephemeralStartPort": "49152",
       "ephemeralEndPort": "65534"
     },
+    /* RDP Jump box settings, uses public IP and a private IP from the management subnet */
     "rdpMachine" : {
       "Name": "[concat(parameters('clusterName'), '-vmRDP')]",
       "nicName": "[concat(parameters('clusterName'), '-nicRDP')]",
@@ -276,7 +296,9 @@
     }
   },
   "resources": [
+    /* Storage accounts used by the solution */
     {
+      "comments" : "loop through and create each of the storage accounts for the VM Scale Sets",
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat(variables('uniqueStringArray')[copyIndex()], variables('saSuffix'))]",
@@ -289,11 +311,11 @@
         "accountType": "[parameters('storageAccountType')]"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
     {
+      "comments" : "create a single storage account for VM logs/diagnostics and the jump box OS disk",
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[variables('supportLogStorageAccountName')]",
@@ -302,10 +324,10 @@
         "accountType": "[parameters('supportLogStorageAccountType')]"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* Network Security Group for the management subnet */
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkSecurityGroups",
@@ -314,6 +336,7 @@
       "properties" : {
         "securityRules": [
           {
+            "comments" : "allow port used to access the fabric cluster web portal",
             "name": "allowSvcFabPortal",
             "properties": {
               "protocol": "*",
@@ -327,6 +350,7 @@
             }
           },
           {
+            "comments" : "allow port used by the fabric client (includes powershell)",
             "name": "allowSvcFabClient",
             "properties": {
               "protocol": "*",
@@ -340,6 +364,7 @@
             }
           },
           {
+            "comments" : "allow ports within vnet that are used by the fabric to talk between nodes",
             "name": "allowSvcFabCluser",
             "properties": {
               "protocol": "*",
@@ -353,6 +378,7 @@
             }
           },
           {
+            "comments" : "allow fabric ephemeral ports within the vnet",
             "name": "allowSvcFabEphemeral",
             "properties": {
               "protocol": "*",
@@ -366,6 +392,7 @@
             }
           },
           {
+            "comments" : "allow SMB traffic within the net, used by fabric to move packages around",
             "name": "allowSvcFabSMB",
             "properties": {
               "protocol": "*",
@@ -379,6 +406,7 @@
             }
           },
           {
+            "comments" : "allow RDP within the net",
             "name": "allowVNetRDP",
             "properties": {
               "protocol": "*",
@@ -392,6 +420,7 @@
             }
           },
           {
+            "comments" : "allow RDP into the Jumpbox from the internet",
             "name": "allowJumpBoxRDP",
             "properties": {
               "protocol": "*",
@@ -405,6 +434,7 @@
             }
           },
           {
+            "comments" : "block all traffic except what we've explicitly allowed",
             "name": "blockAll",
             "properties": {
               "protocol": "*",
@@ -420,10 +450,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* Network Security Group for the front end subnet */
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkSecurityGroups",
@@ -432,6 +462,7 @@
       "properties" : {
         "securityRules": [
           {
+            "comments" : "allow public application port 1",
             "name": "allowAppPort1",
             "properties": {
               "protocol": "*",
@@ -445,6 +476,7 @@
             }
           },
           {
+            "comments" : "allow public application port 2",
             "name": "allowAppPort2",
             "properties": {
               "protocol": "*",
@@ -458,6 +490,7 @@
             }
           },
           {
+            "comments" : "allow ports within vnet that are used by the fabric to talk between nodes",
             "name": "allowSvcFabCluser",
             "properties": {
               "protocol": "*",
@@ -471,6 +504,7 @@
             }
           },
           {
+            "comments" : "allow fabric ephemeral ports within the vnet",
             "name": "allowSvcFabEphemeral",
             "properties": {
               "protocol": "*",
@@ -484,6 +518,7 @@
             }
           },
           {
+            "comments" : "allow SMB traffic within the net, used by fabric to move packages around",
             "name": "allowSvcFabSMB",
             "properties": {
               "protocol": "*",
@@ -497,6 +532,7 @@
             }
           },
           {
+            "comments" : "allow RDP within the net",
             "name": "allowVNetRDP",
             "properties": {
               "protocol": "*",
@@ -510,6 +546,7 @@
             }
           },
           {
+            "comments" : "block all traffic except what we've explicitly allowed",
             "name": "blockAll",
             "properties": {
               "protocol": "*",
@@ -525,10 +562,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* Network Security Group for the back end subnet */    
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkSecurityGroups",
@@ -537,6 +574,7 @@
       "properties" : {
         "securityRules": [
           {
+            "comments" : "allow private application port 1 within the Vnet",
             "name": "allowAppPort1",
             "properties": {
               "protocol": "*",
@@ -550,6 +588,7 @@
             }
           },
           {
+            "comments" : "allow private application port 2 within the Vnet",
             "name": "allowAppPort2",
             "properties": {
               "protocol": "*",
@@ -563,6 +602,7 @@
             }
           },
           {
+            "comments" : "allow ports within vnet that are used by the fabric to talk between nodes",
             "name": "allowSvcFabCluser",
             "properties": {
               "protocol": "*",
@@ -576,6 +616,7 @@
             }
           },
           {
+            "comments" : "allow fabric ephemeral ports within the vnet",
             "name": "allowSvcFabEphemeral",
             "properties": {
               "protocol": "*",
@@ -589,6 +630,7 @@
             }
           },
           {
+            "comments" : "allow SMB traffic within the net, used by fabric to move packages around",
             "name": "allowSvcFabSMB",
             "properties": {
               "protocol": "*",
@@ -602,6 +644,7 @@
             }
           },
           {
+            "comments" : "allow RDP within the net",
             "name": "allowVNetRDP",
             "properties": {
               "protocol": "*",
@@ -615,6 +658,7 @@
             }
           },
           {
+            "comments" : "block all traffic except what we've explicitly allowed",
             "name": "blockAll",
             "properties": {
               "protocol": "*",
@@ -630,10 +674,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* virtual network with 3 subnets for each 'zone' of the cluster */        
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/virtualNetworks",
@@ -680,10 +724,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* public IP for the front end application endpoints */            
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
@@ -696,10 +740,10 @@
         "publicIPAllocationMethod": "[variables('ipFrontEnd')['AddressType']]"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* public IP for the cluster management endpoints */            
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
@@ -712,10 +756,10 @@
         "publicIPAllocationMethod": "[variables('ipMgmnt')['AddressType']]"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* public front end load balancer */            
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/loadBalancers",
@@ -802,10 +846,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* private/internal back end load balancer with a private IP (internal load balancer) */            
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/loadBalancers",
@@ -822,6 +866,7 @@
 							"subnet": {
 	  						"id": "[variables('subnetBackEnd')['Ref']]"
   						},
+              "comments" : "bound to private IP within the back end subnet",
 		  				"privateIPAddress": "[variables('lbBackEnd')['lbIPAddress']]",
 			  			"privateIPAllocationMethod": "Static"
 						}
@@ -894,10 +939,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* cluster management endpoint load balancer */            
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/loadBalancers",
@@ -984,10 +1029,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* VM Scale Set for front end nodes */            
     {
       "apiVersion": "2016-03-30",
       "type": "Microsoft.Compute/virtualMachineScaleSets",
@@ -1081,10 +1126,10 @@
         "tier": "Standard"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* VM Scale Set for back end nodes */
     {
       "apiVersion": "2016-03-30",
       "type": "Microsoft.Compute/virtualMachineScaleSets",
@@ -1178,10 +1223,10 @@
         "tier": "Standard"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* VM Scale Set for management nodes */    
     {
       "apiVersion": "2016-03-30",
       "type": "Microsoft.Compute/virtualMachineScaleSets",
@@ -1275,10 +1320,10 @@
         "tier": "Standard"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* service fabric cluster definition */    
     {
       "apiVersion": "2016-03-01",
       "type": "Microsoft.ServiceFabric/clusters",
@@ -1315,6 +1360,7 @@
             },
             "httpGatewayEndpointPort": "[variables('svcFabCluster')['httpGatewayPort']]",
             "isPrimary": false,
+            "comments" : "customize the placement properties for this node type",
             "placementProperties": {
               "isDMZ": "true"
             },
@@ -1364,10 +1410,10 @@
         "vmImage": "Windows"
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* public ip for RDP jump box */        
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
@@ -1380,10 +1426,10 @@
         }
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* Network interface for RDP jump box */        
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
@@ -1411,10 +1457,10 @@
         ]
       },
       "tags": {
-        "resourceType": "Service Fabric",
         "clusterName": "[parameters('clusterName')]"
       }
     },
+    /* RDP jump box */    
     {
       "apiVersion": "2015-06-15",
       "type": "Microsoft.Compute/virtualMachines",
@@ -1461,7 +1507,6 @@
         }
       },
       "tags": {
-          "resourceType": "Service Fabric",
           "clusterName": "[parameters('clusterName')]"
       }
     }
