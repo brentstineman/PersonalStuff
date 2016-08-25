@@ -1,0 +1,4 @@
+FROM microsoft/dotnet:1.0.0-nanoserver-core
+COPY \PublishOutput \myapp
+
+ENTRYPOINT dotnet myapp\ContainerDemoApp.dll
