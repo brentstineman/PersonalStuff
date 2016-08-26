@@ -1,8 +1,10 @@
 ﻿# setup
 # pull the following images
+#    microsoft/nanoserver:latest
+#    microsoft/dotnet:1.0.0-nanoserver
 #
 # run/start the following images
-#
+#    docker run microsoft/nanoserver cmd
 
 ##
 ### Slide 17
@@ -45,3 +47,13 @@ docker rm <container>
 
 # remove all containers
 docker ps –a -–format “{{.ID}}” | %{docker rm $_ -f}
+
+##
+### Slide 21
+##
+# after creating project, build it
+docker build clouddevelop2016 -t 'bstineman/demos:clouddevelop-2016‘ .
+
+# push it to docker hub
+docker login
+docker push 
