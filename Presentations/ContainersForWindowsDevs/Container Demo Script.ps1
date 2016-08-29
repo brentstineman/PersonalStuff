@@ -1,10 +1,17 @@
 ﻿# setup
 # pull the following images
 #    microsoft/nanoserver:latest
-#    microsoft/dotnet:1.0.0-nanoserver
+#    microsoft/dotnet:1.0.0-nanoserver-core
 #
 # run/start the following images
 #    docker run microsoft/nanoserver cmd
+
+##
+### Slide 16
+##
+
+# show that docker is installed
+docker version
 
 ##
 ### Slide 17
@@ -43,7 +50,7 @@ docker stop
 ##
 
 # remove an existing container
-docker rm <container>
+docker rm 
 
 # remove all containers
 docker ps –a -–format “{{.ID}}” | %{docker rm $_ -f}
