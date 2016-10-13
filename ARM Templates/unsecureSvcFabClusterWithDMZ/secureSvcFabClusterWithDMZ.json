@@ -3,7 +3,11 @@
 * This template provides an example of creating a service fabric cluster with network level security
 * isolation between nodes. 
 *
-* Note: the cluster itself is not a 'secure' cluster. This template should be used as an example only. 
+* Note: the cluster itself is secured using both certificates and Azure AD. When executing the AD setup, note that this template should reference the 
+* management endpoint for the call back. This URI is formatted as: https://<clustername>mgmnt.<region>.cloudapp.azure.com:19080/Explorer/index.html
+*
+* This template should be used as an example only.
+* 
 * for more information on this template, please see
 *     https://brentdacodemonkey.wordpress.com/2016/08/01/network-isolationsecurity-with-azure-service-fabric/
 */
