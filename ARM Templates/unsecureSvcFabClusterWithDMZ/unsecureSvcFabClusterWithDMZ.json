@@ -150,6 +150,13 @@
         "description": "Number of Management node type instances"
       }
     },
+    "rdpVMSize": {
+      "type": "string",
+      "defaultValue": "Standard_D2",
+      "metadata": {
+        "description": "Size/Sku used for the Management node type instances"
+      }
+    },
     "clusterDurabilityLevel": {
       "type": "string",
       "allowedValues": [
@@ -292,7 +299,7 @@
       "AddressType": "Static",
       "ipAddr" : "10.0.3.4",
       "DNS": "[toLower(concat(parameters('clusterName'), 'RDP'))]",
-      "TypeSize" : "Standard_D2"
+      "TypeSize" : "[parameters('rdpVMSize')]"
     }
   },
   "resources": [
