@@ -241,5 +241,8 @@ ModelManifest.xml
 # Paket dependency manager
 .paket/paket.exe
 
+# Deployment Parameter files
+deploy*.json
+
 # FAKE - F# Make
 .fake/
