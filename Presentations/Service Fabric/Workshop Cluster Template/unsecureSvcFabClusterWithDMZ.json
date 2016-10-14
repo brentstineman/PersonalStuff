@@ -757,38 +757,8 @@
             "name": "LoadBalancerBEAddressPool"
           }
         ],
-        "loadBalancingRules": [
-          {
-            "name": "AppPortLBRule1",
-            "properties": {
-              "backendAddressPool": {
-                "id": "[variables('lbFrontEnd')['PoolID']]"
-              },
-              "backendPort": "[parameters('frontEndLoadBalancedAppPort1')]",
-              "enableFloatingIP": false,
-              "frontendIPConfiguration": {
-                "id": "[variables('lbFrontEnd')['IPConfig']]"
-              },
-              "frontendPort": "[parameters('frontEndLoadBalancedAppPort1')]",
-              "idleTimeoutInMinutes": 5,
-              "probe": {
-                "id": "[concat(variables('lbidFrontEnd'),'/probes/AppPortProbe1')]"
-              },
-              "protocol": "Tcp"
-            }
-          }
-        ],
-        "probes": [
-          {
-            "name": "AppPortProbe1",
-            "properties": {
-              "intervalInSeconds": 5,
-              "numberOfProbes": 2,
-              "port": "[parameters('frontEndLoadBalancedAppPort1')]",
-              "protocol": "Tcp"
-            }
-          }
-        ]
+        "loadBalancingRules": [ ],
+        "probes": [ ]
       },
       "tags": {
         "clusterName": "[parameters('clusterName')]"
@@ -822,42 +792,8 @@
             "name": "LoadBalancerBEAddressPool"
           }
         ],
-        "loadBalancingRules": [
-          {
-            "name": "[concat('AppPortLBRule', padLeft(copyindex(),2,'0'))]",
-            "copy": {
-              "name": "lbNatLoop",
-              "count": "[variables('appserverInstanceCnt')]"
-            },
-            "properties": {
-              "backendAddressPool": {
-                "id": "[variables('lbBackEnd')['PoolID']]"
-              },
-              "backendPort": "[copyindex(parameters('backEndLoadBalancedAppPort1'))]",
-              "enableFloatingIP": false,
-              "frontendIPConfiguration": {
-                "id": "[variables('lbBackEnd')['IPConfig']]"
-              },
-              "frontendPort": "[copyindex(parameters('backEndLoadBalancedAppPort1'))]",
-              "idleTimeoutInMinutes": 5,
-              "probe": {
-                "id": "[concat(variables('lbidBackEnd'),'/probes/AppPortProbe1')]"
-              },
-              "protocol": "Tcp"
-            }
-          }
-        ],
-        "probes": [
-          {
-            "name": "AppPortProbe1",
-            "properties": {
-              "intervalInSeconds": 5,
-              "numberOfProbes": 2,
-              "port": "[parameters('backEndLoadBalancedAppPort1')]",
-              "protocol": "Tcp"
-            }
-          }
-        ]
+        "loadBalancingRules": [ ],
+        "probes": [ ]
       },
       "tags": {
         "clusterName": "[parameters('clusterName')]"
