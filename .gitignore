@@ -244,5 +244,9 @@ ModelManifest.xml
 # Deployment Parameter files
 deploy*.json
 
+# local files only, don't commit these
+local-*.*
+
+
 # FAKE - F# Make
 .fake/
