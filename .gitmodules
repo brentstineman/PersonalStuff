@@ -1,0 +1,9 @@
+[submodule "Presentations/Service Fabric/Workshop Cluster Template/SampleProjects/SFWorkshopOne"]
+	path = Presentations/Service Fabric/Workshop Cluster Template/SampleProjects/SFWorkshopOne
+	url = https://github.com/kevingbb/SFWorkshopOne.git
+[submodule "Presentations/Service Fabric/Workshop Cluster Template/SampleProjects/SFWorkshopTwo"]
+	path = Presentations/Service Fabric/Workshop Cluster Template/SampleProjects/SFWorkshopTwo
+	url = https://github.com/kevingbb/SFWorkshopTwo
+[submodule "Presentations/Service Fabric/Workshop Cluster Template/SampleProjects/SFWorkshopThree"]
+	path = Presentations/Service Fabric/Workshop Cluster Template/SampleProjects/SFWorkshopThree
+	url = https://github.com/kevingbb/SFWorkshopThree
