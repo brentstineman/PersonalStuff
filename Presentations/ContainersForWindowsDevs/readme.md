@@ -25,3 +25,5 @@ Enjoy!
 [http://learningdocker.com/](http://learningdocker.com/) – unknown
 
 [Comparitive Study of Docker Engine on Windows Server vs Linux PLatform](http://collabnix.com/archives/1965) - Ajeet Singh Raina (Docker Captain)
+
+[Troubleshooting Windows Setup](https://msdn.microsoft.com/en-us/virtualization/windowscontainers/troubleshooting)
