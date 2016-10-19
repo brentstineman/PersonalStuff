@@ -12,19 +12,19 @@ The presentation is divided into several sections (with estimated times):
 For anyone that attends this presentation, you may find these additional links helpful.
 
 **Service Fabric**
-Official Documentation Documentation: http://aka.ms/servicefabric
-SDK (Windows, Linux ,OSX): http://aka.ms/servicefabricSDK
-Programming Service Fabirc (Safari books): https://www.safaribooksonline.com/library/view/programming-microsoft-azure/9781509301904/
-Introduction to the Resource Manager: https://azure.microsoft.com/en-us/documentation/articles/service-fabric-cluster-resource-manager-introduction/
+- [Official Documentation Documentation](http://aka.ms/servicefabric)
+- [SDK (Windows, Linux ,OSX)](http://aka.ms/servicefabricSDK)
+- [Programming Service Fabirc (Safari books)](https://www.safaribooksonline.com/library/view/programming-microsoft-azure/9781509301904/)
+- [Introduction to the Resource Manager](https://azure.microsoft.com/en-us/documentation/articles/service-fabric-cluster-resource-manager-introduction/)
 
 
 **Microservice Architecture**
-Bounded Context: http://martinfowler.com/bliki/BoundedContext.html
-GRASP – General Responsibility Assignment Software Principles: https://en.wikipedia.org/wiki/GRASP_(object-oriented_design)
-"Gang of Four“ Design Patterns: https://en.wikipedia.org/wiki/Design_Patterns
-Cloud Design Patterns: https://msdn.microsoft.com/en-us/library/dn568099.aspx
-Idempotence: https://en.wikipedia.org/wiki/Idempotence
-Throttling Pattern: https://msdn.microsoft.com/en-us/library/dn589798.aspx
+- [Bounded Context](http://martinfowler.com/bliki/BoundedContext.html)
+- [GRASP – General Responsibility Assignment Software Principles](https://en.wikipedia.org/wiki/GRASP_(object-oriented_design)
+- ["Gang of Four“ Design Patterns](https://en.wikipedia.org/wiki/Design_Patterns)
+- [Cloud Design Patterns](https://msdn.microsoft.com/en-us/library/dn568099.aspx)
+- [Idempotence](https://en.wikipedia.org/wiki/Idempotence)
+- [Throttling Pattern](https://msdn.microsoft.com/en-us/library/dn589798.aspx)
 
 #Service Fabric Workshop#
 This is a 3-4hr workshop for folks with a basic understanding of Service Fabric. It attempts to move beyond the "hello world" scenarios that are demonstrated in the [getting started documentation](https://azure.microsoft.com/en-us/documentation/articles/service-fabric-get-started/) and into some real world challenges. This is broken up into three core sections:
