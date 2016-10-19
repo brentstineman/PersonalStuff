@@ -12,9 +12,12 @@ The presentation is divided into several sections (with estimated times):
 For anyone that attends this presentation, you may find these additional links helpful.
 
 **Service Fabric**
-Official Documentation Documentation: [http://aka.ms/servicefabric]
+Official Documentation Documentation: http://aka.ms/servicefabric
+
 SDK (Windows, Linux ,OSX): http://aka.ms/servicefabricSDK
+
 Programming Service Fabirc (Safari books): https://www.safaribooksonline.com/library/view/programming-microsoft-azure/9781509301904/
+
 Introduction to the Resource Manager: https://azure.microsoft.com/en-us/documentation/articles/service-fabric-cluster-resource-manager-introduction/
 
 
