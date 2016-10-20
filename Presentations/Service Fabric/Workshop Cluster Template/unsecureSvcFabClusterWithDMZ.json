@@ -44,6 +44,13 @@
         "description": "Port for Http Client Connection end point to perform management operations on this cluster"
       }
     },
+    "fabricReverseProxyPort": {
+        "type": "int",
+        "defaultValue": 19008,
+        "metadata": {
+            "description": "Endpoint for Service Fabric Reverse proxy"
+        }
+    },
     "frontEndLoadBalancedAppPort1": {
       "type": "int",
       "defaultValue": 80,
@@ -279,6 +286,7 @@
     "svcFabCluster" : {
       "tcpGatewayPort": "[parameters('fabricTcpGatewayPort')]",
       "httpGatewayPort": "[parameters('fabricHttpGatewayPort')]",
+      "reverseProxyPort": "[parameters('fabricReverseProxyPort')]",
       "clusterPorts" : "1025-1027",
       "applicationStartPort": "20000",
       "applicationEndPort": "30000",
@@ -1182,7 +1190,7 @@
     },
     /* service fabric cluster definition */    
     {
-      "apiVersion": "2016-03-01",
+      "apiVersion": "2016-09-01",
       "type": "Microsoft.ServiceFabric/clusters",
       "name": "[parameters('clusterName')]",
       "location": "[resourceGroup().location]",
@@ -1216,6 +1224,7 @@
               "startPort": "[variables('svcFabCluster')['ephemeralStartPort']]"
             },
             "httpGatewayEndpointPort": "[variables('svcFabCluster')['httpGatewayPort']]",
+            "reverseProxyEndpointPort": "[variables('svcFabCluster')['reverseProxyPort']]",
             "isPrimary": false,
             "comments" : "customize the placement properties for this node type",
             "placementProperties": {
@@ -1236,6 +1245,7 @@
               "startPort": "[variables('svcFabCluster')['ephemeralStartPort']]"
             },
             "httpGatewayEndpointPort": "[variables('svcFabCluster')['httpGatewayPort']]",
+            "reverseProxyEndpointPort": "[variables('svcFabCluster')['reverseProxyPort']]",
             "isPrimary": false,
             "placementProperties": {
               "isDMZ": "false"
@@ -1255,6 +1265,7 @@
               "startPort": "[variables('svcFabCluster')['ephemeralStartPort']]"
             },
             "httpGatewayEndpointPort": "[variables('svcFabCluster')['httpGatewayPort']]",
+            "reverseProxyEndpointPort": "[variables('svcFabCluster')['reverseProxyPort']]",
             "isPrimary": true,
             "placementProperties": {
               "isDMZ": "false"
