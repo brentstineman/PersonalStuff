@@ -639,6 +639,20 @@
             }
           },
           {
+            "comments" : "allow fabric application ports within the vnet",
+            "name": "allowSvcFabApplication",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "[concat(variables('svcFabCluster')['applicationStartPort'], '-', variables('svcFabCluster')['applicationEndPort'])]",
+              "sourceAddressPrefix": "VirtualNetwork",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 3960,
+              "direction": "Inbound"
+            }
+          },
+          {
             "comments" : "block all traffic except what we've explicitly allowed",
             "name": "blockAll",
             "properties": {
