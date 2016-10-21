@@ -35,3 +35,18 @@ This is a 3-4hr workshop for folks with a basic understanding of Service Fabric.
 Each section will be composed of a 15-20 minute presentation followed by 40-60 minutes of hands on time.
 
 The workshop utilizes a workshop cluster template included within this section of the respository. It creates a complex Service Fabric cluster composed of 3 different node types in three different subnets, each with their own security restrictions. The cluster includes both internal and external load balancers and can be deployed with a range of ports available for students (I recommend just using a set of playing cards to assign ports to specific attendees).
+
+Workshop Lab 1
+These links should be helpful in completing the first workshop lab.
+
+https://azure.microsoft.com/en-us/documentation/articles/service-fabric-reliable-services-communication-webapi/
+
+https://brentdacodemonkey.wordpress.com/2016/09/11/placement-constraints-with-service-fabric/
+
+https://azure.microsoft.com/en-us/documentation/articles/service-fabric-cluster-resource-manager-configure-services/
+
+https://azure.microsoft.com/en-us/documentation/articles/service-fabric-reverseproxy/
+
+Workshop Lab 2
+
+Workshop Lab 3
