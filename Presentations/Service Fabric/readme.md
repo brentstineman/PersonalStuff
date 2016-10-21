@@ -47,6 +47,8 @@ https://azure.microsoft.com/en-us/documentation/articles/service-fabric-cluster-
 
 https://azure.microsoft.com/en-us/documentation/articles/service-fabric-reverseproxy/
 
+https://azure.microsoft.com/en-us/documentation/articles/service-fabric-reliable-services-quick-start/
+
 Workshop Lab 2
 
 Workshop Lab 3

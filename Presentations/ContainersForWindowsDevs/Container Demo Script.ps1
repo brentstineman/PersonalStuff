@@ -59,7 +59,7 @@ docker ps –a -–format “{{.ID}}” | %{docker rm $_ -f}
 ### Slide 21
 ##
 # after creating project, build it
-docker build clouddevelop2016 -t 'bstineman/demos:clouddevelop-2016‘ .
+docker build -t 'bstineman/demos:devup-2016‘ .
 
 # push it to docker hub
 docker login
