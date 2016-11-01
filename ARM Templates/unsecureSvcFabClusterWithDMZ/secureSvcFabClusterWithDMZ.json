@@ -10,6 +10,9 @@
 * 
 * for more information on this template, please see
 *     https://brentdacodemonkey.wordpress.com/2016/08/01/network-isolationsecurity-with-azure-service-fabric/
+*
+* the content of this template borrows from and was inspired by:
+*     https://github.com/Azure/azure-quickstart-templates/tree/master/service-fabric-secure-cluster-5-node-1-nodetype-wad
 */
 {
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
@@ -179,6 +182,18 @@
       "defaultValue": "Bronze",
       "metadata": {
         "description": "Durability level of all Service Fabric node types"
+      }
+    },
+    "clusterProtectionLevel": {
+      "type": "string",
+      "allowedValues": [
+        "None",
+        "Sign",
+        "EncryptAndSign"
+      ],
+      "defaultValue": "EncryptAndSign",
+      "metadata": {
+        "description": "Protection level.Three values are allowed - EncryptAndSign, Sign, None. It is best to keep the default of EncryptAndSign, unless you have a need not to"
       }
     },    
     "clusterReliabilityLevel": {
@@ -1486,7 +1501,7 @@
             "parameters": [
               {
                 "name": "ClusterProtectionLevel",
-                "value": "EncryptAndSign"
+                "value": "[parameters('clusterProtectionLevel')]"
               }
             ]
           }
