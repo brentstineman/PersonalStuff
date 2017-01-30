@@ -1,0 +1,98 @@
+{  
+    "$schema":"http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion":"1.0.0.0",
+    "parameters": {  
+        "namespaceName" : {
+            "type": "string",
+            "metadata": {
+                "description":"Name of the EventHub namespace"
+            }
+        },
+        "eventHubName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Name of the Event Hub"
+            }
+        },
+        "consumerGroupName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Name of the Consumer Group"
+            }
+        },
+        "managePolicyName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Name of managing policy"
+            }
+        }
+   },
+   "variables":{  
+      "location":"[resourceGroup().location]",
+      "apiVersion":"2015-08-01",
+      "defaultSASKeyName":"RootManageSharedAccessKey",
+      "authRuleResourceId":"[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('namespaceName'), variables('defaultSASKeyName'))]"
+   },
+   "resources":[  
+     {  
+       "apiVersion":"[variables('apiVersion')]",
+       "name":"[parameters('namespaceName')]",
+       "type":"Microsoft.EventHub/Namespaces",
+       "location":"[variables('location')]",
+       "sku":{  
+         "name":"Standard",
+         "tier":"Standard"
+       },
+       "resources":[  
+         {  
+           "apiVersion":"[variables('apiVersion')]",
+           "type":"EventHubs",
+           "name":"[parameters('eventHubName')]",
+           "dependsOn":[  
+             "[concat('Microsoft.EventHub/namespaces/', parameters('namespaceName'))]"
+           ],
+           "properties":{  
+             "path":"[parameters('eventHubName')]"
+           },
+           "resources": [  
+             {  
+               "apiVersion":"[variables('apiVersion')]",
+               "type":"ConsumerGroups",
+               "name":"[parameters('consumerGroupName')]",
+               "dependsOn":[  
+                 "[parameters('eventHubName')]"
+               ],
+               "properties":{ }
+             },
+             {
+               "apiVersion": "[variables('apiVersion')]",
+               "type": "authorizationRules",
+               "name": "[parameters('managePolicyName')]",
+               "dependsOn": [
+                 "[concat('Microsoft.EventHub/namespaces/', parameters('namespaceName'),'/eventhubs/',parameters('eventHubName'))]",
+                 "[concat('Microsoft.EventHub/namespaces/', parameters('namespaceName'),'/eventhubs/',parameters('eventHubName'), '/consumerGroups/', parameters('consumerGroupName'))]"
+               ],
+               "properties": {
+                 "Rights": [
+                   "Send",
+                   "Listen",
+                   "Manage"
+                 ]
+               }
+             }
+           ]
+         }
+       ]
+     }
+   ],
+   "outputs":{  
+      "NamespaceConnectionString":{  
+         "type":"string",
+         "value":"[listkeys(variables('authRuleResourceId'), variables('apiVersion')).primaryConnectionString]"
+      },
+      "SharedAccessPolicyPrimaryKey":{  
+         "type":"string",
+         "value":"[listkeys(variables('authRuleResourceId'), variables('apiVersion')).primaryKey]"
+      }
+   }
+}

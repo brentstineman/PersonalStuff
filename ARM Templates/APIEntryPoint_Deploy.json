@@ -1,0 +1,322 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "suffix": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 5,
+      "metadata": {
+        "description": "suffix to be used on all new resources"
+      }
+    },
+    "sqlAdministratorLogin" : {
+      "type": "string",
+      "metadata": {
+        "description": "SQL DB Server Admin username"
+      }
+    },
+    "sqlAdministratorPassword" : {
+      "type": "securestring",
+      "metadata": {
+        "description": "SQL DB Server Admin password"
+      }
+    },
+    "servicebusName" : {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Service Bus"
+      }
+    },
+    "servicebusConnectionString" : {
+      "type": "string",
+      "metadata": {
+        "description": "The Service Bus connection string"
+      }
+    },
+    "logicAppName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "metadata": {
+        "description": "Name of the Logic App."
+      }
+    },
+    "LogToEventHubResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID for the 'Log to Event Hub' function."
+      }
+    }
+  },
+  "variables": {
+      "sqlserverName" : "[concat(parameters('suffix'), '-sqlDB')]",
+      "databaseName" : "sampleDB",
+      "sqlConnection" : {
+          "Name" : "[concat(variables('sqlserverName'), 'conn')]",
+          "ApiId" : "[concat(subscription().id,'/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/sql')]"
+      },
+      "servicebusConnection" : {
+          "Name" : "[concat(parameters('servicebusName'), 'conn')]",
+          "ApiId" : "[concat(subscription().id,'/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/servicebus')]"
+      }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2014-04-01",
+      "name": "[toLower(variables('sqlserverName'))]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "administratorLogin": "[parameters('sqlAdministratorLogin')]",
+        "administratorLoginPassword": "[parameters('sqlAdministratorPassword')]",
+        "version": "12.0"
+      },
+      "resources": [
+        {
+          "type": "databases",
+          "apiVersion": "2015-01-01",
+          "name": "[variables('databaseName')]",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers/', variables('sqlserverName'))]"
+          ],
+          "properties": {
+            "edition": "Basic",
+            "collation": "SQL_Latin1_General_CP1_CI_AS",
+            "maxSizeBytes": "1073741824",
+            "requestedServiceObjectiveName": "Basic"
+          }
+        },
+        {
+          "type": "firewallrules",
+          "apiVersion": "2014-04-01",
+          "name": "AllowAllWindowsAzureIps",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers/', variables('sqlserverName'))]"
+          ],
+          "properties": {
+            "endIpAddress": "0.0.0.0",
+            "startIpAddress": "0.0.0.0"
+          }
+        }
+      ]
+    },
+    {
+        "type": "Microsoft.Web/connections",
+        "apiVersion": "2016-06-01",
+        "location": "[resourceGroup().location]",
+        "name": "[variables('sqlConnection')['Name']]",
+        "dependsOn": [
+          "[concat('Microsoft.Sql/servers/', variables('sqlserverName'))]"
+        ],
+        "properties": {
+        "api": {
+            "id": "[variables('sqlConnection')['ApiId']]"
+        },
+        "displayName": "sql_connection",
+        "parameterValues": {
+            "server": "[reference(concat('Microsoft.Sql/servers/', variables('sqlserverName'))).fullyQualifiedDomainName]",
+            "database": "[variables('databaseName')]",
+            "authType": "windows",
+            "username": "[parameters('sqlAdministratorLogin')]",
+            "password": "[parameters('sqlAdministratorPassword')]"
+        }
+        }
+    },
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[variables('servicebusConnection')['Name']]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "api": {
+            "id": "[variables('servicebusConnection')['ApiId']]"
+        },
+        "displayName": "servicebus_connection",
+        "parameterValues": {
+          "connectionString": "[parameters('servicebusConnectionString')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2016-06-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections/', variables('sqlConnection')['Name'])]",
+        "[resourceId('Microsoft.Web/connections/', variables('servicebusConnection')['Name'])]"
+      ],
+      "properties": {
+        "definition": {
+            "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+            "contentVersion": "1.0.0.0",
+            "actions": {
+                "ComposeJobMsg": {
+                    "inputs": {
+                        "JobID": "@{body('SaveJobtoDatabase')?['OutputParameters']['JobID']}",
+                        "customer": "@{triggerBody()?['customer']}",
+                        "job_payload": "@triggerBody()?['job_payload']",
+                        "job_type": "@{triggerBody()?['job_type']}"
+                    },
+                    "runAfter": {
+                        "SaveJobtoDatabase": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose"
+                },
+                "LogReceiptToEventHub": {
+                    "inputs": {
+                        "body": {
+                            "JobID": "",
+                            "customer": "@{triggerBody()?['customer']}",
+                            "job_payload": "@{triggerBody()}",
+                            "status": "received"
+                        },
+                        "function": {
+                            "id": "[parameters('LogToEventHubResourceId')]"
+                        }
+                    },
+                    "runAfter": {},
+                    "type": "Function"
+                },
+                "LogSubmissionToEventHub": {
+                    "inputs": {
+                        "body": {
+                            "JobID": "@{body('SaveJobtoDatabase')?['OutputParameters']['JobID']}",
+                            "customer": "@{triggerBody()?['customer']}",
+                            "job_payload": "@{triggerBody()}",
+                            "status": "submitted"
+                        },
+                        "function": {
+                            "id": "[parameters('LogToEventHubResourceId')]"
+                        }
+                    },
+                    "runAfter": {
+                        "RespondToRequest": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Function"
+                },
+                "RespondToRequest": {
+                    "inputs": {
+                        "body": {
+                            "JobID": "@{body('SaveJobtoDatabase')?['OutputParameters']['JobID']}",
+                            "msg": "job accepted"
+                        },
+                        "statusCode": 200
+                    },
+                    "runAfter": {
+                        "SubmitForProcessing": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Response"
+                },
+                "SaveJobtoDatabase": {
+                    "inputs": {
+                        "body": {
+                            "customerId": "@{triggerBody()?['customer']}",
+                            "job": "@{triggerBody()?['job_type']}",
+                            "payload": "@{triggerBody()?['job_payload']}"
+                        },
+                        "host": {
+                            "api": {
+                                "runtimeUrl": "[concat('https://logic-apis-', resourceGroup().location, '.azure-apim.net/apim/sql')]"
+                            },
+                            "connection": {
+                                "name": "@parameters('$connections')['sql']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/datasets/default/procedures/@{encodeURIComponent(encodeURIComponent('[dbo].[spINSERT_NewJob]'))}"
+                    },
+                    "runAfter": {
+                        "LogReceiptToEventHub": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                },
+                "SubmitForProcessing": {
+                    "inputs": {
+                        "body": {
+                            "ContentData": "@encodeBase64(string(outputs('ComposeJobMsg')))",
+                            "ContentType": "JSON",
+                            "Properties": {
+                                "job_type": "@{triggerBody()?['job_type']}"
+                            }
+                        },
+                        "host": {
+                            "api": {
+                                "runtimeUrl": "[concat('https://logic-apis-', resourceGroup().location, '.azure-apim.net/apim/servicebus')]"
+                            },
+                            "connection": {
+                                "name": "@parameters('$connections')['servicebus']['connectionId']"
+                            }
+                        },
+                        "method": "post",
+                        "path": "/@{encodeURIComponent('incomingjobs')}/messages"
+                    },
+                    "runAfter": {
+                        "ComposeJobMsg": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "ApiConnection"
+                }
+            },
+            "parameters": {
+                "$connections": {
+                  "defaultValue": {},
+                  "type": "Object"
+                }
+            },
+            "outputs": {},
+            "triggers": {
+                "manual": {
+                    "inputs": {
+                        "schema": {
+                            "properties": {
+                                "customer": {
+                                    "type": "string"
+                                },
+                                "job_payload": {
+                                    "type": "string"
+                                },
+                                "job_type": {
+                                    "type": "string"
+                                }
+                            },
+                            "title": "Job Order",
+                            "type": "object"
+                        }
+                    },
+                    "kind": "Http",
+                    "type": "Request"
+                }
+            }
+        },
+        "parameters": {
+            "$connections": {
+                "value": {
+                    "servicebus": {
+                        "id": "[variables('servicebusConnection')['ApiId']]",
+                        "connectionId": "[resourceId('Microsoft.Web/connections', variables('servicebusConnection')['Name'])]"
+                    },
+                    "sql": {
+                        "id": "[variables('sqlConnection')['ApiId']]",
+                        "connectionId": "[resourceId('Microsoft.Web/connections', variables('sqlConnection')['Name'])]"
+                    }
+                }
+            }
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}

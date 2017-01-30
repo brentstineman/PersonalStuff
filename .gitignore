@@ -243,6 +243,7 @@ ModelManifest.xml
 
 # Deployment Parameter files
 deploy*.json
+*deployparms*.json
 
 # local files only, don't commit these
 local-*.*

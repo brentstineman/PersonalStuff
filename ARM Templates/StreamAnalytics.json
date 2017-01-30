@@ -1,0 +1,156 @@
+{  
+    "$schema":"http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion":"1.0.0.0",
+    "parameters": {  
+        "streamingjobName" : {
+            "type": "string",
+            "metadata": {
+                "description":"Name of the streamingjob"
+            }
+        },
+        "sbNamespace":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Service Bus Namespace Name"
+            }
+        },
+        "sbPolicyName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Service Bus Access Policy Name"
+            }
+        },
+        "sbPolicyKey":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Service Bus Access Policy Key"
+            }
+        },
+        "sbEventHubName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Service Bus Event Hub Name"
+            }
+        },
+        "sbConsumerGroupName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Service Bus Consumer Group Name"
+            }
+        },
+        "saAccountName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Storage Account Name"
+            }
+        },
+        "saAccountKey":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Storage Account Key"
+            }
+        },
+        "saTableName":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Storage Account Table Name"
+            }
+        },
+        "saPartitionKey":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Storage Account Partition Key"
+            }
+        },
+        "saRowKey":{  
+            "type":"string",
+            "metadata":{  
+                "description":"Storage Account Row Key"
+            }
+        }
+   },
+   "variables":{  
+      "location":"[resourceGroup().location]",
+      "saVersion": "2015-10-01",
+      "inputName" : "rawinput",
+      "outputName" : "StreamArchive"
+   },
+   "resources":[  
+    {
+      "apiVersion": "[variables('saVersion')]",
+      "type": "Microsoft.StreamAnalytics/streamingjobs",
+      "name": "[parameters('streamingjobName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "Stream Analytics Job"
+      },
+      "properties": {
+        "sku": {
+          "name": "standard"
+        },
+        "EventsOutOfOrderMaxDelayInSeconds": 10,
+        "EventsOutOfOrderPolicy": "adjust",
+        "outputStartMode": "JobStartTime",
+        "outputStartTime": null,
+        "Inputs": [
+          {    
+            "Name" : "[variables('inputName')]",
+            "properties":{    
+                "type":"stream",  
+                "serialization":{    
+                  "type":"JSON",  
+                  "properties":{    
+                      "encoding":"UTF8"  
+                  }  
+                },  
+                "datasource":{    
+                  "type":"Microsoft.ServiceBus/EventHub",  
+                  "properties":{    
+                      "serviceBusNamespace":"[parameters('sbNamespace')]",
+                      "sharedAccessPolicyName":"[parameters('sbPolicyName')]",  
+                      "sharedAccessPolicyKey":"[parameters('sbPolicyKey')]",  
+                      "eventHubName":"[parameters('sbEventHubName')]",  
+                      "consumerGroupName":"[parameters('sbConsumerGroupName')]"  
+                  }  
+                }  
+            }  
+          }
+        ],
+        "Outputs": [
+          {
+            "Name": "[variables('outputName')]",
+            "properties": {
+              "serialization": {
+                "type": "CSV",
+                "properties": {
+                  "Encoding": "UTF8",
+                  "fielddelimiter": ","
+                }
+              },
+              "datasource":{    
+                "type": "Microsoft.Storage/Table",
+                "properties": {
+                  "accountName": "[parameters('saAccountName')]",
+                  "accountKey": "[parameters('saAccountKey')]",
+                  "table": "[parameters('saTableName')]",
+                  "partitionKey": "[parameters('saPartitionKey')]",
+                  "rowKey": "[parameters('saRowKey')]",
+                  "batchSize" : 1
+                }
+              }
+            }
+          }
+        ],
+        "Transformation": {
+          "Name": "ArchiveToTable",
+          "Properties": {
+            "Query": "[concat('SELECT * INTO ', variables('outputName'), ' FROM ', variables('inputName'))]",
+            "StreamingUnits": 1
+          }
+        }
+      }
+    }
+   ],
+   "outputs":{ }
+}
