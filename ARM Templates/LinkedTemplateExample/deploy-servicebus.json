@@ -75,8 +75,34 @@
                         "[variables('namespaceRef')]"
                     ],
                     "properties": {
+                        "path": "[parameters('queueName')]",
+                        "DefaultMessageTimeToLive" : "14:00:00"
                     },
                     "resources": [
+                        /* create the consumer/manage policy */
+                        {
+                            "type": "authorizationRules",
+                            "name": "[parameters('ManagePolicyName')]",
+                            "apiVersion": "[variables('ehApiVersion')]",
+                            "dependsOn": [
+                                "[variables('queueRef')]"
+                            ],
+                            "properties": {
+                                "rights": [ "Send", "Listen", "Manage" ]
+                            }
+                        },
+                        /* create a "sender" policy */
+                        {
+                            "type": "authorizationRules",
+                            "name": "[parameters('SenderPolicyName')]",
+                            "apiVersion": "[variables('ehApiVersion')]",
+                            "dependsOn": [
+                                "[variables('queueRef')]"
+                            ],
+                            "properties": {
+                                "rights": [ "Send" ]
+                            }
+                        }
                     ]
                 }
             ]
@@ -87,7 +113,6 @@
     *   SendPolicy: an object that describes details about using the send policy
     */
     "outputs": {
-        /*
         "ManagePolicy" : {
             "type" : "object",
             "value": {
@@ -95,8 +120,8 @@
                 "queueName" : "[parameters('queueName')]",
                 "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('queueName'),'/messages')]",
                 "policyName": "[parameters('ManagePolicyName')]",
-                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryKey]",
-                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryConnectionString]"
+                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryKey]",
+                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryConnectionString]"
             }
         },
         "SendPolicy" : {
@@ -106,10 +131,9 @@
                 "queueName" : "[parameters('queueName')]",
                 "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('queueName'),'/messages')]",
                 "policyName": "[parameters('SenderPolicyName')]",
-                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryKey]",
-                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryConnectionString]"
+                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryKey]",
+                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryConnectionString]"
             }
         }
-        */
     }
 }

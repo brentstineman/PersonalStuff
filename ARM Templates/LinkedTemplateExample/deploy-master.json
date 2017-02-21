@@ -78,24 +78,6 @@
                 "Standard"
             ]
         },
-        "managePolicyName": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 15,
-            "defaultValue": "Manage",
-            "metadata": {
-                "description": ""
-            }
-        },
-        "senderPolicyName": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 15,
-            "defaultValue": "Send",
-            "metadata": {
-                "description": ""
-            }
-        },
         "storageAccountType": {
             "type": "string",
             "defaultValue": "Standard_GRS",
@@ -130,7 +112,7 @@
         "sqlServerName" : "[concat(parameters('resourcePrefix'), '-sql')]",
         "ServiceBusNamespace" : "[concat(parameters('resourcePrefix'), '-sbQueues')]",
         "DomainPrefix": "[concat(parameters('resourcePrefix'), '-web')]",
-        "StorageAccountName": "[concat(parameters('resourcePrefix'), '-storage')]",
+        "StorageAccountName": "[parameters('resourcePrefix')]",
         "dbTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-db.json'), parameters('templateSASToken'))]",
         "WebTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-web.json'), parameters('templateSASToken'))]",
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
@@ -173,16 +155,14 @@
                     "queueName": { "value": "[variables('queuename')]" }
                 } 
             } 
-        }
-        /*
-        ,
+        },
         { 
             "type": "Microsoft.Resources/deployments", 
             "name": "WebTemplate", 
             "apiVersion": "[variables('deploymentAPI')]", 
             "dependsOn": [
                 "SQLDatabaseTemplate",
-                "EventHubTemplate"
+                "ServiceBusTemplate"
             ],
             "properties": { 
                 "mode": "Incremental", 
@@ -193,7 +173,12 @@
                 "parameters": { 
                     "DomainPrefix": { "value": "[variables('DomainPrefix')]" },
                     "WebHostingPlan": { "value": "[parameters('WebHostingPlan')]" },
-                    "InstanceCount": { "value": "[parameters('InstanceCount')]" }
+                    "InstanceCount": { "value": "[parameters('InstanceCount')]" },
+                    "sqlServerFQDN": { "value": "[reference('SQLDatabaseTemplate').outputs.databaseServerFQDN.value]" },
+                    "sqlDatabaseName": { "value": "[[reference('SQLDatabaseTemplate').outputs.databaseName.value]" },
+                    "sqlAdministratorLogin": { "value": "[parameters('adminUser')]" },
+                    "sqlAdministratorPassword": { "value": "[parameters('adminPassword')]" },
+                    "svcbusSendPolicy": { "value": "[reference('ServiceBusTemplate').outputs.sendPolicy.value]" }
                 } 
             } 
         },
@@ -212,11 +197,9 @@
                     "storageAccountType": { "value": "[parameters('storageAccountType')]" }
                 } 
             } 
-        }
-        */ 
+        } 
     ],
     "outputs": {
-        /*
         "WebSiteFQDN" : {
             "type" : "string",
             "value": "[reference('WebTemplate').Outputs.webSiteFQDN.value]"
@@ -229,6 +212,5 @@
             "type" : "string",
             "value": "[reference('SQLDatabaseTemplate').Outputs.databaseName.value]"
         }
-        */
     }
 }

@@ -7,7 +7,7 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "NetherWebDomainPrefix": {
+        "DomainPrefix": {
             "type": "string",
             "minLength": 6,
             "maxLength": 12,
@@ -42,17 +42,41 @@
                 "description": "Number of copies of the application. Limited based on hosting plan. "
             }
         },
-        "eventhubSendPolicy": {
+        "sqlServerFQDN" : {
+            "type" : "string",
+            "metadata": {
+                "description": "The FQDN of the SQL Database server"
+            }
+        },
+        "sqlDatabaseName" : {
+            "type" : "string",
+            "metadata": {
+                "description": "The database name in the server"
+            }
+        },
+        "sqlAdministratorLogin" : {
+            "type" : "string",
+            "metadata": {
+                "description": "Database Admin User"
+            }
+        },
+        "sqlAdministratorPassword" : {
+            "type" : "string",
+            "metadata": {
+                "description": "Database User Password"
+            }
+        },
+        "svcbusSendPolicy": {
             "type": "object",
             "metadata": {
-                "description": "An object that contains the following values about the event hub: uri, policyName, policyKey, connectionString"
+                "description": "An object that contains the following values about the: uri, policyName, policyKey, connectionString"
             }
         }
     },
     "variables": {
         "WebResourceAPI": "2015-08-01",
-        "hostingPlanName": "[toLower(concat(parameters('NetherWebDomainPrefix'), '-hostingplan'))]",
-        "webSiteName": "[toLower(concat(parameters('NetherWebDomainPrefix'), '-website'))]",
+        "hostingPlanName": "[toLower(concat(parameters('DomainPrefix'), '-hostingplan'))]",
+        "webSiteName": "[toLower(concat(parameters('DomainPrefix'), '-webapp'))]",
         /* The webHostingPlan specified in the input parameter is translated into the app host plan settings via this array */
         "HostingSKUs" : {
             "Free (no 'always on')" : {
@@ -111,7 +135,7 @@
                 "enableAlwaysOn": true
             }
         },
-        "sqlConnString": "[concat('Data Source=tcp:',parameters('DatabaseServerFQDN'),',1433;Initial Catalog=',parameters('sqlServerDatabaseName'),';User Id=',parameters('sqlAdministratorLogin'),'@',parameters('DatabaseServerFQDN'),';Password=',parameters('sqlAdministratorPassword'),';')]"
+        "sqlConnString": "[concat('Data Source=tcp:',parameters('sqlServerFQDN'),',1433;Initial Catalog=',parameters('sqlDatabaseName'),';User Id=',parameters('sqlAdministratorLogin'),'@',parameters('sqlServerFQDN'),';Password=',parameters('sqlAdministratorPassword'),';')]"
     },
     "resources": [
         /* 
@@ -170,7 +194,7 @@
                         "displayName": "DeployTheZip"
                     },
                     "properties": {
-                        "packageUri": "[parameters('webZipUri')]"
+                        
                     }
                 },
                 /* Set up the various Nether application configuration settings */
@@ -186,7 +210,15 @@
                         /* TODO: Add explanation of section */
                         "alwaysOn": "[variables('HostingSKUs')[parameters('WebHostingPlan')].enableAlwaysOn]",
                         "WEB_HOST_URL": "[concat('https://', reference(variables('webSiteName')).hostNames[0])]",
-                        "ASPNETCORE_ENVIRONMENT": "Development"
+                        "ASPNETCORE_ENVIRONMENT": "Development",
+
+                        "Identity:Store:properties:ConnectionString": "[variables('sqlConnString')]",
+
+                        /* TODO: Add explanation of section */
+                        "Analytics:ServiceBus:Ttl" : "24:00:00", 
+                        "Analytics:ServiceBus:Resource": "[parameters('svcbusSendPolicy').uri]",
+                        "Analytics:ServiceBus:KeyName": "[parameters('svcbusSendPolicy').policyName]",
+                        "Analytics:ServiceBus:AccessKey": "[parameters('svcbusSendPolicy').policyKey]"
                     }
                 }
             ]
