@@ -242,7 +242,7 @@ ModelManifest.xml
 .paket/paket.exe
 
 # Deployment Parameter files
-deploy*.json
+*params.json
 *deployparms*.json
 
 # local files only, don't commit these
