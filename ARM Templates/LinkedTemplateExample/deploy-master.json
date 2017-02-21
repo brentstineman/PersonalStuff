@@ -16,7 +16,7 @@
             "minLength": 6,
             "maxLength": 6,
             "metadata": {
-                "description": "The begining portion of the Nether web deployment URL (must be globally unique). only allows alpha characters and '-'. Cannot start or end with '-'." 
+                "description": "The resource prefix (must be globally unique). only allows alpha characters." 
             }
         },
         "WebHostingPlan": { 
@@ -79,14 +79,6 @@
                 "description": "The password of the admin user of the SQL Server"
             }
         },
-        "analyticsEventHubNamespace": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 15,
-            "metadata": {
-                "description": "The unique storage account for use by Nether. only allows alpha characters and '-'. Cannot start or end with '-'."
-            }
-        },
         "serviceBusTier": {
             "type": "string", 
             "defaultValue": "Basic",
@@ -100,13 +92,6 @@
             "defaultValue": 1,
             "minValue": 1,
             "maxValue": 20
-        },
-        "eventHubName": {
-            "type": "string",
-            "defaultValue": "analyticevents",
-            "metadata": {
-                "description": ""
-            }
         },
         "managePolicyName": {
             "type": "string",
@@ -124,30 +109,6 @@
             "defaultValue": "Send",
             "metadata": {
                 "description": ""
-            }
-        },
-        "dayToRetain": {
-            "type": "int",
-            "defaultValue": 1,
-            "minValue": 1,
-            "maxValue": 7,
-            "metadata": {
-                "description": "For basic teir this must be 1. For standard tier this can be 1-7"
-            }
-        },
-        "partitionCount": {
-            "type": "int",
-            "defaultValue": 4,
-            "metadata": {
-                "description": ""
-            }
-        },
-        "analyticsStorageAccountName": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 15,
-            "metadata": {
-                "description": "The unique storage account for use by Nether. only allows alpha characters and '-'. Cannot start or end with '-'."
             }
         },
         "storageAccountType": {

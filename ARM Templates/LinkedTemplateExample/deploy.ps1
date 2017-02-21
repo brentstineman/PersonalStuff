@@ -1,44 +1,57 @@
 param
 (
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [string]
     $ResourceGroupName,
 
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [string]
-    $StorageAccountName,
+    $resourcPrefix,
 
+    [Parameter(Mandatory=$false)]
+    [string]
+    $sqlAdminUser,
+
+    [Parameter(Mandatory=$false)]
+    [string]
+    $sqlAdminPassword
 )
 $ErrorActionPreference = "Stop";
 
-$netherRoot = "$PSScriptRoot/.."
+$scriptRoot = "$PSScriptRoot/"
 
+if ([string]::IsNullOrEmpty($ResourceGroupName)){
+    $ResourceGroupName = Read-Host 'What is the name of the Resource Group we are deploying too?'
+}
 
-# Publish Nether.Web
-Write-Host
-Write-Host "Publishing Nether.Web ..."
-# $build = "Release"
-$build = "Debug"
-$publishPath = "$netherRoot/src/Nether.Web/bin/$build/netcoreapp1.1/publish"
+#$pass = Read-Host 'What is your password?' -AsSecureString
 
 Write-Host "Checking for resource group $ResourceGroupName..."
 $resourceGroup = Get-AzureRmResourceGroup -name $ResourceGroupName -ErrorAction SilentlyContinue
 if ($resourceGroup -eq $null){
+        $Location = Read-Host 'The resource Group does not exist. Which Azure region should we create it in?'
+
     Write-Host "creating new resource group $ResourceGroupName ... in $Location"
     $resourceGroup = New-AzureRmResourceGroup -Name $ResourceGroupName -Location $Location
 }
 
+if ([string]::IsNullOrEmpty($resourcPrefix)){
+    $resourcPrefix = Read-Host 'What resource prefix should be used for resources?'
+    $resourcPrefix = $resourcPrefix.ToString().ToLower()
+}
+$tempStorageAccountName = $resourcPrefix+"tmp"
+
 $storageAccount = Get-AzureRmStorageAccount `
                     -ResourceGroupName $ResourceGroupName `
-                    -Name $storageAccountName `
+                    -Name $tempStorageAccountName `
                     -ErrorAction SilentlyContinue
 if ($storageAccount -eq $null){
     Write-Host
     Write-Host "Creating storage account $StorageAccountName..."
     $storageAccount = New-AzureRmStorageAccount `
         -ResourceGroupName $ResourceGroupName `
-        -Name $StorageAccountName `
-        -Location $Location `
+        -Name $tempStorageAccountName `
+        -Location $resourceGroup.Location `
         -SkuName Standard_LRS
 }
 
@@ -61,22 +74,26 @@ if ($container -eq $null){
 
 Write-Host
 Write-Host "Uploading Deployment scripts to storage..."
-Get-ChildItem -File $netherRoot/deployment/* -Exclude *params.json -filter deploy*.json | Set-AzureStorageBlobContent `
+Get-ChildItem -File $scriptRoot* -Exclude *params.json -filter deploy-*.json | Set-AzureStorageBlobContent `
         -Context $storageAccount.Context `
         -Container $containerName `
         -Force
 
+# get remaining parameters
+if ([string]::IsNullOrEmpty($sqlAdminUser)){
+    $sqlAdminUser = Read-Host 'What the administrateive username?'
+}
+
+if ([string]::IsNullOrEmpty($sqlAdminPassword)){
+    $sqlAdminPassword = Read-Host 'What the administrateive password?' -AsSecureString
+}
+
+
 $templateParameters = @{
-    NetherWebDomainPrefix = $NetherWebDomainPrefix
-    sqlServerName = $sqlServerName
-    sqlAdministratorLogin = $sqlAdministratorLogin
-    sqlAdministratorPassword = $SqlAdministratorPassword
-    analyticsEventHubNamespace = $AnalyticsEventHubNamespace
-    analyticsStorageAccountName = $AnalyticsStorageAccountName
-    
-    webZipUri = $webZipblob.ICloudBlob.Uri.AbsoluteUri
-    # webZipUri = "https://netherassets.blob.core.windows.net/packages/package261.zip"
-    # webZipUri = "https://netherbits.blob.core.windows.net/deployment/Nether.Web.zip"
+    resourcePrefix = $resourcPrefix
+    sqlAdministratorLogin = $sqlAdminUser
+    sqlAdministratorPassword = $sqlAdminPassword
+
     # templateBaseURL is used for linked template deployments, see deployment/readme.md
     #    This must end with "/" or it will break the linked templates
     templateBaseURL = $container.CloudBlobContainer.StorageUri.PrimaryUri.AbsoluteUri + "/"
@@ -92,13 +109,13 @@ $templateParameters = @{
     # ... and more! see nether-deploy.json template for full list of available parameters
 }
 
-$deploymentName = "Nether-Deployment-{0:yyyy-MM-dd-HH-mm-ss}" -f (Get-Date)
+$deploymentName = "Deployment-{0:yyyy-MM-dd-HH-mm-ss}" -f (Get-Date)
 Write-Host
 Write-Host "Deploying application... ($deploymentName)"
 $result = New-AzureRmResourceGroupDeployment `
             -ResourceGroupName $ResourceGroupName `
             -Name $deploymentName `
-            -TemplateFile "$PSScriptRoot\nether-deploy.json" `
+            -TemplateFile "$PSScriptRoot\deploy-master.json" `
             -TemplateParameterObject $templateParameters
 
 Write-Host
