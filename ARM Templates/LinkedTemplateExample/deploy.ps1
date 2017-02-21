@@ -10,15 +10,15 @@ param
 
     [Parameter(Mandatory=$false)]
     [string]
-    $sqlAdminUser,
+    $AdminUser,
 
     [Parameter(Mandatory=$false)]
-    [string]
-    $sqlAdminPassword
+    [securestring]
+    $AdminPassword
 )
 $ErrorActionPreference = "Stop";
 
-$scriptRoot = "$PSScriptRoot/"
+$scriptRoot = "$PSScriptRoot" #don't end in '\'
 
 if ([string]::IsNullOrEmpty($ResourceGroupName)){
     $ResourceGroupName = Read-Host 'What is the name of the Resource Group we are deploying too?'
@@ -38,7 +38,11 @@ if ($resourceGroup -eq $null){
 if ([string]::IsNullOrEmpty($resourcPrefix)){
     $resourcPrefix = Read-Host 'What resource prefix should be used for resources?'
     $resourcPrefix = $resourcPrefix.ToString().ToLower()
+    #TODO validation response
+
+    #TODO make sure its available
 }
+
 $tempStorageAccountName = $resourcPrefix+"tmp"
 
 $storageAccount = Get-AzureRmStorageAccount `
@@ -74,25 +78,25 @@ if ($container -eq $null){
 
 Write-Host
 Write-Host "Uploading Deployment scripts to storage..."
-Get-ChildItem -File $scriptRoot* -Exclude *params.json -filter deploy-*.json | Set-AzureStorageBlobContent `
+Get-ChildItem -File $scriptRoot/* -Exclude *params.json -filter deploy-*.json | Set-AzureStorageBlobContent `
         -Context $storageAccount.Context `
         -Container $containerName `
         -Force
 
 # get remaining parameters
-if ([string]::IsNullOrEmpty($sqlAdminUser)){
-    $sqlAdminUser = Read-Host 'What the administrateive username?'
+if ([string]::IsNullOrEmpty($adminUser)){
+    $adminUser = Read-Host 'What the administrative username?'
 }
 
-if ([string]::IsNullOrEmpty($sqlAdminPassword)){
-    $sqlAdminPassword = Read-Host 'What the administrateive password?' -AsSecureString
+if ([string]::IsNullOrEmpty($adminPassword)){
+    $adminPassword = Read-Host 'What the administrative password?' -AsSecureString
 }
 
 
 $templateParameters = @{
     resourcePrefix = $resourcPrefix
-    sqlAdministratorLogin = $sqlAdminUser
-    sqlAdministratorPassword = $sqlAdminPassword
+    adminUser = $adminUser.ToString()
+    adminPassword = $adminPassword.ToString()
 
     # templateBaseURL is used for linked template deployments, see deployment/readme.md
     #    This must end with "/" or it will break the linked templates
@@ -109,13 +113,14 @@ $templateParameters = @{
     # ... and more! see nether-deploy.json template for full list of available parameters
 }
 
+
 $deploymentName = "Deployment-{0:yyyy-MM-dd-HH-mm-ss}" -f (Get-Date)
 Write-Host
 Write-Host "Deploying application... ($deploymentName)"
 $result = New-AzureRmResourceGroupDeployment `
             -ResourceGroupName $ResourceGroupName `
             -Name $deploymentName `
-            -TemplateFile "$PSScriptRoot\deploy-master.json" `
+            -TemplateFile "$scriptRoot\deploy-master.json" `
             -TemplateParameterObject $templateParameters
 
 Write-Host

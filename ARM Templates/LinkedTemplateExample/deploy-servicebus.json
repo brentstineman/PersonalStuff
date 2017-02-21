@@ -25,9 +25,8 @@
         },
         "queueName": {
             "type": "string",
-            "defaultValue": "analyticevents",
             "metadata": {
-                "description": ""
+                "description": "name of the queue to create"
             }
         },
         "ManagePolicyName": {
@@ -52,26 +51,25 @@
     "variables": {
         "ehApiVersion": "2015-08-01",
         "location":"[resourceGroup().location]",
-        "namespaceRef" : "[concat('Microsoft.EventHub/namespaces/', parameters('ServiceBusNamespace'))]",
-        "eventHubRef" : "[concat('Microsoft.EventHub/namespaces/', parameters('ServiceBusNamespace'),'/eventhubs/',parameters('eventHubName'))]"
+        "namespaceRef" : "[concat('Microsoft.ServiceBus/namespaces/', parameters('ServiceBusNamespace'))]",
+        "queueRef" : "[concat('Microsoft.ServiceBus/namespaces/', parameters('ServiceBusNamespace'),'/queues/',parameters('queueName'))]"
     },
     "resources": [
         /* The Azure Service Bus Namespace, Event Hub, and access policy */
         {  
-            "type":"Microsoft.EventHub/Namespaces",
+            "type":"Microsoft.ServiceBus/Namespaces",
             "name":"[parameters('ServiceBusNamespace')]",
             "location":"[variables('location')]",
             "apiVersion":"[variables('ehApiVersion')]",
             "sku":{  
                 "name":"[parameters('ServiceBusTier')]",
-                "tier":"[parameters('ServiceBusTier')]",
-                "capacity": "[parameters('Capacity')]"
+                "tier":"[parameters('ServiceBusTier')]"
             },
             "resources":[                  
                 /* create the queue */
                 {
                     "type": "Queues",
-                    "name": "[parameters('serviceBusQueueName')]",
+                    "name": "[parameters('queueName')]",
                     "apiVersion": "[variables('ehApiVersion')]",
                     "dependsOn": [
                         "[variables('namespaceRef')]"
@@ -79,30 +77,6 @@
                     "properties": {
                     },
                     "resources": [
-                        /* create the consumer/manage policy */
-                        {
-                            "type": "authorizationRules",
-                            "name": "[parameters('ManagePolicyName')]",
-                            "apiVersion": "[variables('ehApiVersion')]",
-                            "dependsOn": [
-                                "[variables('eventHubRef')]"
-                            ],
-                            "properties": {
-                                "rights": [ "Send", "Listen", "Manage" ]
-                            }
-                        },
-                        /* create a "sender" policy */
-                        {
-                            "type": "authorizationRules",
-                            "name": "[parameters('SenderPolicyName')]",
-                            "apiVersion": "[variables('ehApiVersion')]",
-                            "dependsOn": [
-                                "[variables('eventHubRef')]"
-                            ],
-                            "properties": {
-                                "rights": [ "Send" ]
-                            }
-                        }
                     ]
                 }
             ]
@@ -113,27 +87,29 @@
     *   SendPolicy: an object that describes details about using the send policy
     */
     "outputs": {
+        /*
         "ManagePolicy" : {
             "type" : "object",
             "value": {
                 "namespace" : "[parameters('ServiceBusNamespace')]",
-                "hubname" : "[parameters('EventHubName')]",
-                "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('EventHubName'),'/messages')]",
+                "queueName" : "[parameters('queueName')]",
+                "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('queueName'),'/messages')]",
                 "policyName": "[parameters('ManagePolicyName')]",
-                "policyKey" : "[listKeys(resourceId(concat('Microsoft.EventHub/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('EventHubName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryKey]",
-                "connectionString" : "[listKeys(resourceId(concat('Microsoft.EventHub/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('EventHubName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryConnectionString]"
+                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryKey]",
+                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryConnectionString]"
             }
         },
         "SendPolicy" : {
             "type" : "object",
             "value": {
                 "namespace" : "[parameters('ServiceBusNamespace')]",
-                "hubname" : "[parameters('EventHubName')]",
-                "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('EventHubName'),'/messages')]",
+                "queueName" : "[parameters('queueName')]",
+                "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('queueName'),'/messages')]",
                 "policyName": "[parameters('SenderPolicyName')]",
-                "policyKey" : "[listKeys(resourceId(concat('Microsoft.EventHub/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('EventHubName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryKey]",
-                "connectionString" : "[listKeys(resourceId(concat('Microsoft.EventHub/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('EventHubName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryConnectionString]"
+                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryKey]",
+                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/EventHubs/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryConnectionString]"
             }
         }
+        */
     }
 }

@@ -1,12 +1,4 @@
-/*
-* This is the "master" template used to provision the Azure resources for Nether.
-*
-* This leverages linked templates which requires that the templates it links to are available via a URL. By default, these 
-* will be pulled from the same location as this template. But this can be overridden by specifying a location via the pull 
-* them from by specifying the templateBaseURL parameter.
-* 
-* For more information, please refer to the Nether repository at: https://github.com/MicrosoftDX/nether/tree/master/deployment
-*/
+
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
@@ -66,17 +58,16 @@
                 "description": "Specifies the database pricing/performance." 
             } 
         }, 
-        "sqlAdministratorLogin": {
+        "adminUser": {
             "type": "string",
-            "minLength": 8,
             "metadata": {
-                "description": "The admin user of the SQL Server"
+                "description": "The admin user"
             }
         },
-        "sqlAdministratorPassword": {
+        "adminPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "The password of the admin user of the SQL Server"
+                "description": "The password of the admin user"
             }
         },
         "serviceBusTier": {
@@ -86,12 +77,6 @@
                 "Basic",
                 "Standard"
             ]
-        },
-        "serviceBusCapacity": {
-            "type": "int", 
-            "defaultValue": 1,
-            "minValue": 1,
-            "maxValue": 20
         },
         "managePolicyName": {
             "type": "string",
@@ -146,10 +131,11 @@
         "ServiceBusNamespace" : "[concat(parameters('resourcePrefix'), '-sbQueues')]",
         "DomainPrefix": "[concat(parameters('resourcePrefix'), '-web')]",
         "StorageAccountName": "[concat(parameters('resourcePrefix'), '-storage')]",
-        "dbTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'nether-deploy-db.json'), parameters('templateSASToken'))]",
-        "WebTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'nether-deploy-web.json'), parameters('templateSASToken'))]",
-        "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'nether-deploy-storageAccount.json'), parameters('templateSASToken'))]",
-        "ServiceBusTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'nether-deploy-servicebus.json'), parameters('templateSASToken'))]"
+        "dbTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-db.json'), parameters('templateSASToken'))]",
+        "WebTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-web.json'), parameters('templateSASToken'))]",
+        "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
+        "ServiceBusTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicebus.json'), parameters('templateSASToken'))]",
+        "queuename" : "samplequeue"
     },
     "resources": [ 
         { 
@@ -164,15 +150,16 @@
                 }, 
                 "parameters": { 
                     "sqlServerName": { "value": "[variables('sqlServerName')]" },
+                    "databaseName": { "value": "sample" },
                     "databaseSKU": { "value": "[parameters('databaseSKU')]" },
-                    "sqlAdministratorLogin": { "value": "[parameters('sqlAdministratorLogin')]" },
-                    "sqlAdministratorPassword": { "value": "[parameters('sqlAdministratorPassword')]" }
+                    "sqlAdministratorLogin": { "value": "[parameters('adminUser')]" },
+                    "sqlAdministratorPassword": { "value": "[parameters('adminPassword')]" }
                 } 
             } 
         },
         { 
             "type": "Microsoft.Resources/deployments", 
-            "name": "EventHubTemplate", 
+            "name": "ServiceBusTemplate", 
             "apiVersion": "[variables('deploymentAPI')]", 
             "properties": { 
                 "mode": "Incremental", 
@@ -183,10 +170,12 @@
                 "parameters": { 
                     "ServiceBusNamespace": { "value": "[variables('ServiceBusNamespace')]" },
                     "ServiceBusTier": { "value": "[parameters('serviceBusTier')]" },
-                    "Capacity": { "value": "[parameters('serviceBusCapacity')]" }
+                    "queueName": { "value": "[variables('queuename')]" }
                 } 
             } 
-        },
+        }
+        /*
+        ,
         { 
             "type": "Microsoft.Resources/deployments", 
             "name": "WebTemplate", 
@@ -223,9 +212,11 @@
                     "storageAccountType": { "value": "[parameters('storageAccountType')]" }
                 } 
             } 
-        } 
+        }
+        */ 
     ],
     "outputs": {
+        /*
         "WebSiteFQDN" : {
             "type" : "string",
             "value": "[reference('WebTemplate').Outputs.webSiteFQDN.value]"
@@ -238,5 +229,6 @@
             "type" : "string",
             "value": "[reference('SQLDatabaseTemplate').Outputs.databaseName.value]"
         }
+        */
     }
 }
