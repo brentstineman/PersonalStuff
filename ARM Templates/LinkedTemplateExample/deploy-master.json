@@ -1,4 +1,3 @@
-
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
@@ -117,9 +116,56 @@
         "WebTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-web.json'), parameters('templateSASToken'))]",
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
         "ServiceBusTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicebus.json'), parameters('templateSASToken'))]",
-        "queuename" : "samplequeue"
+        "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
+        "queuename" : "samplequeue",
+        "vNetSettings": { 
+            "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
+            "addressPrefix": "10.0.0.0/16",
+            "subnetFrontEnd" : {
+                "Name": "FrontEnd",
+                "CIDR": "10.0.1.0/24"
+            },
+            "subnetBackEnd" : {
+                "Name": "BackEnd",
+                "CIDR": "10.0.2.0/24"
+            },
+            "subnetManagement" : {
+                "Name": "Management",
+                "CIDR": "10.0.3.0/24"
+            }
+        },
+        "svcFabSettings": {
+            "tcpGatewayPort": "19000",
+            "httpGatewayPort": "19080",
+            "reverseProxyPort": "19008",
+            "clusterPorts" : "1025-1027",
+            "applicationStartPort": "20000",
+            "applicationEndPort": "30000",
+            "ephemeralStartPort": "49152",
+            "ephemeralEndPort": "65534"
+        },
+        "frontEndAppPort": 80,
+        "rdpMachineIP": "10.0.3.4"   
     },
     "resources": [ 
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "vnetTemplate", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('VNetTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "vNetSettings": { "value": "[variables('vNetSettings')]" },
+                    "svcFabSettings": { "value": "[variables('svcFabSettings')]" },
+                    "frontEndAppPort": { "value": "[variables('frontEndAppPort')]" },
+                    "rdpMachineIP": { "value": "[variables('rdpMachineIP')]" }
+                } 
+            } 
+        },
         { 
             "type": "Microsoft.Resources/deployments", 
             "name": "SQLDatabaseTemplate", 
