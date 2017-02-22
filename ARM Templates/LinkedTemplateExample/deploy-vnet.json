@@ -1,0 +1,339 @@
+/*
+* This template will create an Azure SQL DB for use by Nether.
+* 
+* For more information, please refer to the Nether repository at: https://github.com/MicrosoftDX/nether/tree/master/deployment
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "vNetSettings": {
+            "type": "object",
+            "metadata": {
+                "description": "Description of the VNet, used by NSG rules."
+            }
+        },
+        "svcFabSettings": {
+            "type": "object",
+            "metadata": {
+                "description": "Description of the Service Fabric Cluster, used by NSG rules."
+            }
+        },
+        "frontEndAppPort": {
+            "type": "int",
+            "metadata": {
+                "description": "The application port in the front end subnet"
+            }
+        },
+        "rdpMachineIP": {
+            "type": "string",
+            "metadata": {
+                "description": "IP Address of the RDP jump box"
+            }
+        }
+    },
+    "variables": {
+        "vnetResourceAPI": "2016-09-01",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vNetSettings')['Name'])]",
+        "subnetFrontEndRef": "[concat(variables('vnetID'),'/subnets/FrontEnd')]",
+        "subnetBackEndRef": "[concat(variables('vnetID'),'/subnets/FrontEnd')]",
+        "subnetManagementRed": "[concat(variables('vnetID'),'/subnets/FrontEnd')]"
+    },
+    "resources": [
+        /* Network Security Group for the management subnet */
+        /* only used for RDP into the network */
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[concat('nsg', parameters('vNetSettings')['subnetManagement']['Name'])]",
+            "apiVersion": "[variables('vnetResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties" : {
+                "securityRules": [
+                    /* allow RDP within the net */
+                    {
+                        "name": "allowVNetRDP",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "3389",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3950,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow RDP into the Jumpbox from the internet */
+                    {
+                        "name": "allowJumpBoxRDP",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "3389",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "[parameters('rdpMachineIP')]",
+                        "access": "Allow",
+                        "priority": 3960,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* block all traffic except what we've explicitly allowed */
+                    {
+                        "name": "blockAll",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "*",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "*",
+                        "access": "Deny",
+                        "priority": 4000,
+                        "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "tags": {
+
+            }
+        },
+        /* Network Security Group for the front end subnet */
+        /* this is where our gateway/proxy VMs will be hosted */
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[concat('nsg', parameters('vNetSettings')['subnetFrontEnd']['Name'])]",
+            "apiVersion": "[variables('vnetResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties" : {
+                "securityRules": [
+                    /* allow public application port */ 
+                    {
+                        "name": "allowAppPort1",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[parameters('frontEndAppPort')]",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 2000,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow RDP within the net */ 
+                    {
+                        "name": "allowVNetRDP",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "3389",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3950,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* block all traffic except what we've explicitly allowed */ 
+                    {
+                        "name": "blockAll",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "*",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "*",
+                        "access": "Deny",
+                        "priority": 4000,
+                        "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "tags": {
+
+            }
+        },
+        /* Network Security Group for the back end subnet */    
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[concat('nsg', parameters('vNetSettings')['subnetBackEnd']['Name'])]",
+            "apiVersion": "[variables('vnetResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties" : {
+                "securityRules": [
+                    /* allow port used to access the fabric cluster web portal */ 
+                    {
+                        "name": "allowSvcFabPortal",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[parameters('svcFabSettings')['httpGatewayPort']]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3900,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow port used by the fabric client (includes powershell) */
+                    {
+                        "name": "allowSvcFabClient",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[parameters('svcFabSettings')['tcpGatewayPort']]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3910,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow ports within vnet that are used by the fabric to talk between nodes */
+                    {
+                        "name": "allowSvcFabCluser",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[parameters('svcFabSettings')['clusterPorts']]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3920,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow fabric ephemeral ports within the vnet */
+                    {
+                        "name": "allowSvcFabEphemeral",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[concat(parameters('svcFabSettings')['ephemeralStartPort'], '-', parameters('svcFabSettings')['ephemeralEndPort'])]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3930,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow SMB traffic within the net, used by fabric to move packages around */
+                    {
+                        "name": "allowSvcFabSMB",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "445",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3940,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow RDP within the net */
+                    {
+                        "name": "allowVNetRDP",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "3389",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3950,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow fabric application ports within the vnet */
+                    {
+                        "name": "allowSvcFabApplication",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[concat(parameters('svcFabSettings')['applicationStartPort'], '-', parameters('svcFabSettings')['applicationEndPort'])]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3960,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* block all traffic except what we've explicitly allowed */
+                    {
+                        "name": "blockAll",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "*",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "*",
+                        "access": "Deny",
+                        "priority": 4000,
+                        "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "tags": {
+
+            }
+        },
+        /* virtual network with 3 subnets for each 'zone' of the cluster */        
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vNetSettings')['Name']]",
+            "apiVersion": "[variables('vnetResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/', concat('nsg', parameters('vNetSettings')['subnetManagement']['Name']))]",
+                "[concat('Microsoft.Network/networkSecurityGroups/', concat('nsg', parameters('vNetSettings')['subnetFrontEnd']['Name']))]",
+                "[concat('Microsoft.Network/networkSecurityGroups/', concat('nsg', parameters('vNetSettings')['subnetBackEnd']['Name']))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                "addressPrefixes": [
+                    "[parameters('vNetSettings')['addressPrefix']]"
+                ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('vNetSettings')['subnetFrontEnd']['Name']]",
+                        "properties": {
+                            "addressPrefix": "[parameters('vNetSettings')['subnetFrontEnd']['CIDR']]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat('nsg', parameters('vNetSettings')['subnetFrontEnd']['Name']))]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "[parameters('vNetSettings')['subnetBackEnd']['Name']]",
+                        "properties": {
+                            "addressPrefix": "[parameters('vNetSettings')['subnetBackEnd']['CIDR']]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat('nsg', parameters('vNetSettings')['subnetBackEnd']['Name']))]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "[parameters('vNetSettings')['subnetManagement']['Name']]",
+                        "properties": {
+                            "addressPrefix": "[parameters('vNetSettings')['subnetManagement']['CIDR']]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat('nsg', parameters('vNetSettings')['subnetManagement']['Name']))]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "tags": {
+
+            }
+        }
+    ],
+    /* outputs: 
+    */
+    "outputs": {
+    }
+}
