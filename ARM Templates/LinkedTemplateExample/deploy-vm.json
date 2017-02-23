@@ -1,0 +1,157 @@
+/*
+* This template will create an Windows VM.
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "vmName": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 15,
+            "metadata": {
+                "description": "Name of the VM."
+            }
+        },
+        "vmNamesuffix": {
+            "type": "string",
+            "maxLength": 2,
+            "metadata": {
+                "description": "A suffix to append to the end of the VM name (useful is looping)"
+            }
+        },
+        "windowsOSVersion": {
+            "type": "string",
+            "defaultValue": "2016-Datacenter",
+            "allowedValues": [
+                "2008-R2-SP1",
+                "2012-Datacenter",
+                "2012-R2-Datacenter",
+                "2016-Datacenter"
+            ],
+            "metadata": {
+                "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version."
+            }
+        },
+        "vmSize": { 
+            "type": "string", 
+            "defaultValue": "Standard_A1", 
+            "allowedValues": [ 
+                "Standard_A1", 
+                "Standard_A2", 
+                "Standard_A1_v2", 
+                "Standard_A2_v2",
+                "Standard_D1_v2", 
+                "Standard_D2_v2" 
+            ], 
+            "metadata": { 
+                "description": "Specifies the pricing/performance. (only a sample set of allowed values is listed)" 
+            }
+        }, 
+        "adminUser": {
+            "type": "string",
+            "metadata": {
+                "description": "The admin user of the VM"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password of the admin user of the VM"
+            }
+        },
+        "ipConfig": { 
+            "type": "object", 
+            "metadata": { 
+                "description": "The IP configuration for the VM" 
+            }
+        }
+    },
+    "variables": {
+        "vmName" : "[toLower(concat(parameters('vmName'),parameters('vmNamesuffix')))]",
+        "nicName": "[concat(variables('vmName'),'-nic')]",
+        "avsetName": "[toLower(concat(parameters('vmName'),'-avset'))]",
+        "vnetResourceAPI": "2016-09-01",
+        "vmResourceAPI": "2016-04-30-preview"
+    },
+    "resources": [
+        /* The NIC for the VM */
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('nicName')]",
+            "apiVersion": "[variables('vnetResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": "[parameters('ipConfig')]"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('avsetName')]",
+            "apiVersion": "[variables('vmResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformFaultDomainCount": "2",
+                "platformUpdateDomainCount": "2",
+                "managed": "true"
+            }
+        },
+        {
+        "apiVersion": "2016-04-30-preview",
+        "type": "Microsoft.Compute/virtualMachines",
+        "name": "[variables('vmName')]",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Network/networkInterfaces/', variables('nicName'))]",
+            "[resourceId('Microsoft.Compute/availabilitySets/', variables('avsetName'))]"
+        ],
+        "properties": {
+            "availabilitySet": {
+                "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('avsetName'))]"
+            },
+            "hardwareProfile": {
+                "vmSize": "[parameters('vmSize')]"
+            },
+            "osProfile": {
+                "computerName": "[variables('vmName')]",
+                "adminUsername": "[parameters('adminUser')]",
+                "adminPassword": "[parameters('adminPassword')]"
+            },
+            "storageProfile": {
+                "imageReference": {
+                    "publisher": "MicrosoftWindowsServer",
+                    "offer": "WindowsServer",
+                    "sku": "[parameters('windowsOSVersion')]",
+                    "version": "latest"
+                },
+                "osDisk": {
+                    "Name" : "[concat(variables('vmName'), '-OSDisk')]",
+                    "createOption": "FromImage"
+                }
+            },
+            "networkProfile": {
+                "networkInterfaces": [
+                    {
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+                    }
+                ]
+            },
+            "diagnosticsProfile": {
+                "bootDiagnostics": {
+                    "enabled": "false"
+                }
+            }
+        }
+        }
+    ],
+    /* outputs: 
+    */
+    "outputs": {
+
+    }
+}
