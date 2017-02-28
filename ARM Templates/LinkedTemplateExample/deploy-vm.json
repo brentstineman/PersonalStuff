@@ -96,15 +96,15 @@
             "apiVersion": "[variables('vmResourceAPI')]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "platformFaultDomainCount": "2",
-                "platformUpdateDomainCount": "2",
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 2,
                 "managed": "true"
             }
         },
         {
-        "apiVersion": "2016-04-30-preview",
         "type": "Microsoft.Compute/virtualMachines",
         "name": "[variables('vmName')]",
+        "apiVersion": "2016-04-30-preview",
         "location": "[resourceGroup().location]",
         "dependsOn": [
             "[resourceId('Microsoft.Network/networkInterfaces/', variables('nicName'))]",
