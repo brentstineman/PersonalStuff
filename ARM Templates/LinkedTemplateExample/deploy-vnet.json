@@ -35,9 +35,9 @@
     "variables": {
         "vnetResourceAPI": "2016-09-01",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vNetSettings')['Name'])]",
-        "subnetFrontEndRef": "[concat(variables('vnetID'),'/subnets/FrontEnd')]",
-        "subnetBackEndRef": "[concat(variables('vnetID'),'/subnets/FrontEnd')]",
-        "subnetManagementRed": "[concat(variables('vnetID'),'/subnets/FrontEnd')]"
+        "subnetFrontEndRef": "[concat(variables('vnetID'),'/subnets/', parameters('vNetSettings')['subnetFrontEnd']['Name'])]",
+        "subnetBackEndRef": "[concat(variables('vnetID'),'/subnets/', parameters('vNetSettings')['subnetBackEnd']['Name'])]",
+        "subnetManagementRef": "[concat(variables('vnetID'),'/subnets/', parameters('vNetSettings')['subnetManagement']['Name'])]"
     },
     "resources": [
         /* Network Security Group for the management subnet */
@@ -335,5 +335,13 @@
     /* outputs: 
     */
     "outputs": {
+         "subnetIDs" : {
+            "type" : "object",
+            "value": {
+                "frontEnd" : "[variables('subnetFrontEndRef')]",
+                "backEnd" : "[variables('subnetBackEndRef')]",
+                "management" : "[variables('subnetManagementRef')]"
+            }            
+        }
     }
 }

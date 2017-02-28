@@ -117,6 +117,7 @@
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
         "ServiceBusTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicebus.json'), parameters('templateSASToken'))]",
         "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
+        "jumpboxTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-jumpbox.json'), parameters('templateSASToken'))]",
         "queuename" : "samplequeue",
         "vNetSettings": { 
             "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
@@ -148,24 +149,6 @@
         "rdpMachineIP": "10.0.3.4"   
     },
     "resources": [ 
-        { 
-            "type": "Microsoft.Resources/deployments", 
-            "name": "vnetTemplate", 
-            "apiVersion": "[variables('deploymentAPI')]", 
-            "properties": { 
-                "mode": "Incremental", 
-                "templateLink": {
-                    "uri": "[variables('VNetTemplateURI')]",
-                    "contentVersion": "1.0.0.0"
-                }, 
-                "parameters": { 
-                    "vNetSettings": { "value": "[variables('vNetSettings')]" },
-                    "svcFabSettings": { "value": "[variables('svcFabSettings')]" },
-                    "frontEndAppPort": { "value": "[variables('frontEndAppPort')]" },
-                    "rdpMachineIP": { "value": "[variables('rdpMachineIP')]" }
-                } 
-            } 
-        },
         { 
             "type": "Microsoft.Resources/deployments", 
             "name": "SQLDatabaseTemplate", 
@@ -243,7 +226,49 @@
                     "storageAccountType": { "value": "[parameters('storageAccountType')]" }
                 } 
             } 
-        } 
+        },
+        /* set up the VNet and compute resources */ 
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "vnetTemplate", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('VNetTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "vNetSettings": { "value": "[variables('vNetSettings')]" },
+                    "svcFabSettings": { "value": "[variables('svcFabSettings')]" },
+                    "frontEndAppPort": { "value": "[variables('frontEndAppPort')]" },
+                    "rdpMachineIP": { "value": "[variables('rdpMachineIP')]" }
+                } 
+            } 
+        },
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "jumpboxTemplate", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "dependsOn": [
+                "vnetTemplate"
+            ],
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('jumpboxTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "resourcePrefix": { "value": "[parameters('resourcePrefix')]" },
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "[parameters('adminPassword')]" },
+                    "subnetResourceId": { "value": "[reference('vnetTemplate').outputs.subnetIDs.value.management]" },
+                    "privateIP" : { "value": "[variables('rdpMachineIP')]" },
+                    "templateBaseURL": { "value": "[parameters('templateBaseURL')]" }
+                } 
+            } 
+        }
     ],
     "outputs": {
         "WebSiteFQDN" : {
@@ -257,6 +282,10 @@
         "DatabaseName" : {
             "type" : "string",
             "value": "[reference('SQLDatabaseTemplate').Outputs.databaseName.value]"
+        },
+        "jumpboxFQDN" : {
+            "type" : "string",
+            "value": "[reference('jumpboxTemplate').Outputs.jumpboxFQDN.value]"
         }
     }
 }

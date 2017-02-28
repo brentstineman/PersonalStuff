@@ -80,7 +80,7 @@
     "variables": {
         "NetworkProviderAPI" : "2015-06-15",
         "deploymentAPI" : "2015-01-01",
-        "publicIPName": "[tolower(concat(parameters('resourcePrefix'), '-pip'))]",
+        "publicIPName": "[tolower(concat(parameters('resourcePrefix'), '-rdp'))]",
         "vmTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vm.json'), parameters('templateSASToken'))]"
     },
     "resources": [ 
@@ -98,7 +98,7 @@
         },
         { 
             "type": "Microsoft.Resources/deployments", 
-            "name": "jumpboxTemplate", 
+            "name": "[concat(deployment().name, '-vm')]", 
             "apiVersion": "[variables('deploymentAPI')]",
             "dependsOn": [
                   "[resourceId('Microsoft.Network/publicIPAddresses/', variables('publicIPName'))]"
@@ -133,6 +133,9 @@
         }
     ],
     "outputs": {
-
+        "jumpboxFQDN" : {
+            "type" : "string",
+            "value": "[reference(variables('publicIPName')).dnsSettings.fqdn]"            
+        }
     }
 }

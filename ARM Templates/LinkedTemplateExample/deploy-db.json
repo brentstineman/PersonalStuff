@@ -168,7 +168,7 @@
         },
         "databaseName" : {
             "type" : "string",
-            "value": "[variables('databaseName')]"
+            "value": "[parameters('databaseName')]"
         }
     }
 }
