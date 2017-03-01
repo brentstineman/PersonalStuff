@@ -1,0 +1,222 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "resourcePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 15,
+            "metadata": {
+                "description": "Name of the VM."
+            }
+        },
+        "publicPort": {
+            "type": "int",
+            "metadata": {
+                "description": "Port we're going to balance traffic on"
+            }
+        },
+        "vmCount": {
+            "type": "int",
+            "defaultValue": 2,
+            "metadata": {
+                "description": "Number of VMs behind the Load Balancer"
+            }
+        },
+        "windowsOSVersion": {
+            "type": "string",
+            "defaultValue": "2016-Datacenter",
+            "allowedValues": [
+                "2008-R2-SP1",
+                "2012-Datacenter",
+                "2012-R2-Datacenter",
+                "2016-Datacenter"
+            ],
+            "metadata": {
+                "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version."
+            }
+        },
+        "vmSize": { 
+            "type": "string", 
+            "defaultValue": "Standard_A1", 
+            "allowedValues": [ 
+                "Standard_A1", 
+                "Standard_A2", 
+                "Standard_A1_v2", 
+                "Standard_A2_v2",
+                "Standard_D1_v2", 
+                "Standard_D2_v2" 
+            ], 
+            "metadata": { 
+                "description": "Specifies the pricing/performance. (only a sample set of allowed values is listed)" 
+            }
+        }, 
+        "adminUser": {
+            "type": "string",
+            "metadata": {
+                "description": "The admin user of the VM"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password of the admin user of the VM"
+            }
+        },
+        "subnetResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "The Resoruce ID of the vNEt Subnet into which the VM should be placed. "
+            }            
+        },
+        "templateBaseURL": {
+            "type": "string",
+            "defaultValue": "[deployment().properties.templateLink.uri]",
+            "metadata": {
+                "description": "The base location for all linked templates."
+            }   
+        },
+        "templateSASToken": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The base location for all linked templates."
+            }   
+        }
+    },
+    "variables": {
+        "NetworkProviderAPI" : "2015-06-15",
+        "deploymentAPI" : "2015-01-01",
+        "publicIPName": "[concat(tolower(parameters('resourcePrefix')), '-lbip')]",
+        "loadbalancerName": "[concat(tolower(parameters('resourcePrefix')), '-lb')]",
+        "loadbalancerId": "[resourceId('Microsoft.Network/loadBalancers',variables('loadbalancerName'))]",
+        "loadbalancerProbeName": "[concat('AppPortProbe-', string(parameters('publicPort')))]",
+        "loadbalancer" : {
+            "IPConfig": "[concat(variables('loadbalancerId'),'/frontendIPConfigurations/LoadBalancerIPConfig')]",
+            "PoolID": "[concat(variables('loadbalancerId'),'/backendAddressPools/LoadBalancerBEAddressPool')]",
+            "ProbeID": "[concat(variables('loadbalancerId'),'/probes/', variables('loadbalancerProbeName'))]",
+            "lbruleName": "[concat('AppPortLBRule-', string(parameters('publicPort')))]"
+        },
+        "vmTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vm.json'), parameters('templateSASToken'))]"
+    },
+    "resources": [
+        /* a public IP address */ 
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPName')]",
+            "apiVersion": "[variables('NetworkProviderAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('publicIPName')]"
+                }
+            }
+        },
+        /* public front end load balancer */            
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('loadbalancerName')]",
+            "apiVersion": "[variables('NetworkProviderAPI')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/',variables('publicIPName'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "LoadBalancerIPConfig",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPName'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "LoadBalancerBEAddressPool"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "[variables('loadbalancer')['lbruleName']]",
+                        "properties": {
+                            "backendAddressPool": {
+                                "id": "[variables('loadbalancer')['PoolID']]"
+                            },
+                            "backendPort": "[parameters('publicPort')]",
+                            "enableFloatingIP": false,
+                            "frontendIPConfiguration": {
+                                "id": "[variables('loadbalancer')['IPConfig']]"
+                            },
+                            "frontendPort": "[parameters('publicPort')]",
+                            "idleTimeoutInMinutes": 5,
+                            "probe": {
+                                "id": "[variables('loadbalancer')['ProbeID']]"
+                            },
+                            "protocol": "Tcp"
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "[variables('loadbalancerProbeName')]",
+                        "properties": {
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2,
+                            "port": "[parameters('publicPort')]",
+                            "protocol": "Tcp"
+                        }
+                    }
+                ]
+            }
+        },
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "[concat(deployment().name, '-lbvms', padLeft(copyindex(),3,'0'))]", 
+            "apiVersion": "[variables('deploymentAPI')]",
+            "dependsOn": [
+                  "[resourceId('Microsoft.Network/loadBalancers/', variables('loadbalancerName'))]"
+            ],
+            "copy": {
+                "name": "vmLoop",
+                "count": "[parameters('vmCount')]"
+            },
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('vmTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "vmName": { "value": "[concat(parameters('resourcePrefix'), 'lbvm')]" },
+                    "vmNamesuffix": { "value": "[padLeft(copyindex(),2,'0')]" },
+                    "windowsOSVersion": { "value": "[parameters('windowsOSVersion')]" },
+                    "vmSize": { "value": "[parameters('vmSize')]" },
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "parameters('adminPassword')" },
+                    "ipConfig": { 
+                        "value": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[parameters('subnetResourceId')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('loadbalancer')['PoolID']]"
+                                }
+                            ]
+                        }
+                    }
+                } 
+            } 
+        }
+    ],
+    "outputs": {
+        "loadbalancerFQDN" : {
+            "type" : "string",
+            "value": "[reference(variables('publicIPName')).dnsSettings.fqdn]"            
+        }
+    }
+}

@@ -118,6 +118,7 @@
         "ServiceBusTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicebus.json'), parameters('templateSASToken'))]",
         "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
         "jumpboxTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-jumpbox.json'), parameters('templateSASToken'))]",
+        "lbVMTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-loadbalancedvms.json'), parameters('templateSASToken'))]",
         "queuename" : "samplequeue",
         "vNetSettings": { 
             "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
@@ -260,12 +261,37 @@
                     "contentVersion": "1.0.0.0"
                 }, 
                 "parameters": { 
-                    "resourcePrefix": { "value": "[parameters('resourcePrefix')]" },
+                    "resourcePrefix": { "value": "[concat(parameters('resourcePrefix'),'rdp')]" },
                     "adminUser": { "value": "[parameters('adminUser')]" },
                     "adminPassword": { "value": "[parameters('adminPassword')]" },
                     "subnetResourceId": { "value": "[reference('vnetTemplate').outputs.subnetIDs.value.management]" },
                     "privateIP" : { "value": "[variables('rdpMachineIP')]" },
-                    "templateBaseURL": { "value": "[parameters('templateBaseURL')]" }
+                    "templateBaseURL": { "value": "[parameters('templateBaseURL')]" },
+                    "templateSASToken": { "value": "[parameters('templateSASToken')]" }
+                } 
+            } 
+        },
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "loadbalancedvmTemplate", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "dependsOn": [
+                "vnetTemplate"
+            ],
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('lbVMTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "resourcePrefix": { "value": "[concat(parameters('resourcePrefix'), 'fe')]" },
+                    "publicPort": { "value": "[variables('frontEndAppPort')]"},
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "[parameters('adminPassword')]" },
+                    "subnetResourceId": { "value": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]" },
+                    "templateBaseURL": { "value": "[parameters('templateBaseURL')]" },
+                    "templateSASToken": { "value": "[parameters('templateSASToken')]" }
                 } 
             } 
         }
@@ -286,6 +312,10 @@
         "jumpboxFQDN" : {
             "type" : "string",
             "value": "[reference('jumpboxTemplate').Outputs.jumpboxFQDN.value]"
+        },
+        "loadbalancerFQDN" : {
+            "type" : "string",
+            "value": "[reference('loadbalancedvmTemplate').Outputs.loadbalancerFQDN.value]"
         }
     }
 }
