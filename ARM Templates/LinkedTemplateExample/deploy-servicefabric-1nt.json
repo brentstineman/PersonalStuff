@@ -1,11 +1,13 @@
 /*
-* This template will create an Windows VM.
+* This template will deploy a unsecured service fabric cluster. The cluster will contain a single VM scaleSet
+* and node type. The cluster is fronted by a load balancer for the gateway/management ports which is placed on 
+* private IP of your choosing. 
 */
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": { 
-        "clusterPrefix": {
+        "resourcePrefix": {
             "type": "string",
             "minLength": 3,
             "maxLength": 15,
@@ -121,14 +123,14 @@
         }
     },
     "variables": {
-        "vmssName" : "[concat(toLower(parameters('clusterPrefix')),'sfn')]",
+        "vmssName" : "[concat(toLower(parameters('resourcePrefix')),'sfn')]",
         "vmResourceAPI": "2016-04-30-preview",
         "deploymentAPI" : "2015-01-01",
         "NetworkProviderAPI" : "2016-09-01",
         "storageDeploymentName": "[concat(deployment().name, '-svcFabStorage')]",
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
-        "StorageAccountName": "[concat(toLower(parameters('clusterPrefix')), 'logs')]",
-        "clusterName": "[concat(parameters('clusterPrefix'), '-svcfab')]",
+        "StorageAccountName": "[concat(toLower(parameters('resourcePrefix')), 'logs')]",
+        "clusterName": "[concat(parameters('resourcePrefix'), '-svcfab')]",
         "overProvision": "false",
         /* cluster node type OS image */
         "nodeImageReference": {
@@ -137,7 +139,7 @@
             "sku": "[parameters('nodeOSVersion')]",
             "version": "latest"
         },
-        "loadbalancerName": "[concat(tolower(parameters('clusterPrefix')), '-sflb')]",
+        "loadbalancerName": "[concat(tolower(parameters('resourcePrefix')), '-sflb')]",
         "loadbalancerId": "[resourceId('Microsoft.Network/loadBalancers',variables('loadbalancerName'))]",
         "loadbalancerProbeName": "[concat('AppPortProbe-', parameters('svcFabSettings')['httpGatewayPort'])]",
         "loadbalancer" : {

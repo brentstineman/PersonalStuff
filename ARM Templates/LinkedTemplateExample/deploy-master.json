@@ -119,6 +119,7 @@
         "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
         "jumpboxTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-jumpbox.json'), parameters('templateSASToken'))]",
         "lbVMTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-loadbalancedvms.json'), parameters('templateSASToken'))]",
+        "svcfabTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-1nt.json'), parameters('templateSASToken'))]",
         "queuename" : "samplequeue",
         "vNetSettings": { 
             "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
@@ -147,7 +148,8 @@
             "ephemeralEndPort": "65534"
         },
         "frontEndAppPort": 80,
-        "rdpMachineIP": "10.0.3.4"   
+        "rdpMachineIP": "10.0.3.4", 
+        "servicefabricLBIP": "10.0.2.4"   
     },
     "resources": [ 
         { 
@@ -290,6 +292,31 @@
                     "adminUser": { "value": "[parameters('adminUser')]" },
                     "adminPassword": { "value": "[parameters('adminPassword')]" },
                     "subnetResourceId": { "value": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]" },
+                    "templateBaseURL": { "value": "[parameters('templateBaseURL')]" },
+                    "templateSASToken": { "value": "[parameters('templateSASToken')]" }
+                } 
+            } 
+        },
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "servicefabricTemplate", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "dependsOn": [
+                "vnetTemplate"
+            ],
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('svcfabTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "resourcePrefix": { "value": "[parameters('resourcePrefix')]" },
+                    "svcFabSettings": { "value": "[variables('svcFabSettings')]"},
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "[parameters('adminPassword')]" },
+                    "subnetResourceId": { "value": "[reference('vnetTemplate').outputs.subnetIDs.value.backend]" },
+                    "clusterGatewayIP": { "value": "[variables('servicefabricLBIP')]" },
                     "templateBaseURL": { "value": "[parameters('templateBaseURL')]" },
                     "templateSASToken": { "value": "[parameters('templateSASToken')]" }
                 } 
