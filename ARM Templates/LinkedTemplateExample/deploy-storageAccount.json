@@ -59,7 +59,8 @@
             "value": {
                 "resourceId" : "[variables('accountResourceId')]",
                 "accountName" : "[variables('storageAccountName')]",
-                "primaryKey": "[listKeys(variables('accountResourceId'), variables('stgApiVersion')).key1]"
+                "primaryKey": "[listKeys(variables('accountResourceId'), variables('stgApiVersion')).key1]",
+                "secondaryKey": "[listKeys(variables('accountResourceId'), variables('stgApiVersion')).key2]"
             }
         }
     }
