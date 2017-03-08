@@ -10,53 +10,19 @@
                 "description": "The resource prefix (must be globally unique). only allows alpha characters." 
             }
         },
-        "WebHostingPlan": { 
-            "type": "string", 
-            "defaultValue": "Free (no 'always on')", 
+        "deploymentSize": {
+            "type": "string",
+            "defaultValue": "Small", 
             "allowedValues": [ 
-                "Free (no 'always on')", 
-                "Shared", 
-                "Basic B1", 
-                "Basic B2", 
-                "Basic B3", 
-                "Standard S1", 
-                "Standard S2", 
-                "Standard S3", 
-                "Premium P1", 
-                "Premium P2", 
-                "Premium P3"
+                "Dev (not for production)", 
+                "Small", 
+                "Medium", 
+                "Large"
             ], 
             "metadata": { 
-                "description": "Specifies the database pricing/performance." 
+                "description": "The general size of the deployment" 
             } 
-        }, 
-        "InstanceCount": {
-            "type": "int",
-            "defaultValue": 1,
-            "metadata": {
-                "description": "Number of copies of the application. Limited based on hosting plan. "
-            }
         },
-        "databaseSKU": { 
-            "type": "string", 
-            "defaultValue": "Basic", 
-            "allowedValues": [ 
-                "Basic", 
-                "Standard", 
-                "Standard S1", 
-                "Standard S2", 
-                "Standard S3", 
-                "Premium P1", 
-                "Premium P2", 
-                "Premium P4", 
-                "Premium P6", 
-                "Premium P11", 
-                "Premium P15"
-            ], 
-            "metadata": { 
-                "description": "Specifies the database pricing/performance." 
-            } 
-        }, 
         "adminUser": {
             "type": "string",
             "metadata": {
@@ -67,28 +33,6 @@
             "type": "securestring",
             "metadata": {
                 "description": "The password of the admin user"
-            }
-        },
-        "serviceBusTier": {
-            "type": "string", 
-            "defaultValue": "Basic",
-            "allowedValues": [
-                "Basic",
-                "Standard"
-            ]
-        },
-        "storageAccountType": {
-            "type": "string",
-            "defaultValue": "Standard_GRS",
-            "allowedValues": [
-                "Standard_LRS",
-                "Standard_ZRS",
-                "Standard_GRS",
-                "Standard_RAGRS",
-                "Premium_LRS"
-            ],
-            "metadata": {
-                "description": "Account type, premium vs standard, and local, zone, global, global read only redundancy"
             }
         },
         "templateBaseURL": {
@@ -149,7 +93,78 @@
         },
         "frontEndAppPort": 80,
         "rdpMachineIP": "10.0.3.4", 
-        "servicefabricLBIP": "10.0.2.4"   
+        "servicefabricLBIP": "10.0.2.4",
+        /* map sizing */
+        "sizeParameters" : {
+            "Dev (not for production)" : {
+                "storageAccountType": "Standard_LRS",
+                "WebHostingPlan": "Basic",
+                "InstanceCount": 1,
+                "databaseSKU": "Basic",
+                "serviceBusTier": "Basic",
+                "serviceFabricNodeCount": 3,
+                "jumpboxVMSize": "Standard_A1",
+                "loadbalancedVMSize": "Standard_A1",
+                "loabalancedVMCount": 1,
+                 "svcfab": {
+                    "nodeSize" : "Standard_A1",
+                    "durabilityLevel" :"Bronze",
+                    "reliabilityLevel" : "Bronze",
+                    "nodeInstanceCount" : 3
+                 }
+            },
+            "Small" : {
+                "storageAccountType": "Standard_ZRS",
+                "WebHostingPlan": "Shared",
+                "InstanceCount": 1,
+                "databaseSKU": "Basic",
+                "serviceBusTier": "Basic",
+                "serviceFabricNodeCount": 5,
+                "jumpboxVMSize": "Standard_A1_v2",
+                "loadbalancedVMSize": "Standard_A1_v2",
+                "loabalancedVMCount": 2,
+                 "svcfab": {
+                    "nodeSize" : "Standard_A1_v2",
+                    "durabilityLevel" :"Bronze",
+                    "reliabilityLevel" : "Silver",
+                    "nodeInstanceCount" : 5
+                 }
+            },
+            "Medium" : {
+                "storageAccountType": "Standard_GRS",
+                "WebHostingPlan": "Standard S1",
+                "InstanceCount": 2,
+                "databaseSKU": "Standard S1",
+                "serviceBusTier": "Standard",
+                "serviceFabricNodeCount": 7,
+                "jumpboxVMSize": "Standard_D2_v2",
+                "loadbalancedVMSize": "Standard_A2_v2",
+                "loabalancedVMCount": 3,
+                 "svcfab": {
+                    "nodeSize" : "Standard_A1",
+                    "durabilityLevel" :"Gold",
+                    "reliabilityLevel" : "Silver",
+                    "nodeInstanceCount" : 5
+                 }
+            },
+            "Large" : {
+                "storageAccountType": "Standard_RAGRS",
+                "WebHostingPlan": "Premium P1",
+                "InstanceCount": 3,
+                "databaseSKU": "Premium P2",
+                "serviceBusTier": "Standard",
+                "serviceFabricNodeCount": 10,
+                "jumpboxVMSize": "Standard_D2_v2",
+                "loadbalancedVMSize": "Standard_D2_v2",
+                "loabalancedVMCount": 4,
+                 "svcfab": {
+                    "nodeSize" : "Standard_D4_v2",
+                    "durabilityLevel" :"Gold",
+                    "reliabilityLevel" : "Gold",
+                    "nodeInstanceCount" : 7
+                 }
+            }
+        }
     },
     "resources": [ 
         { 
@@ -165,7 +180,7 @@
                 "parameters": { 
                     "sqlServerName": { "value": "[variables('sqlServerName')]" },
                     "databaseName": { "value": "sample" },
-                    "databaseSKU": { "value": "[parameters('databaseSKU')]" },
+                    "databaseSKU": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['databaseSKU']]" },
                     "sqlAdministratorLogin": { "value": "[parameters('adminUser')]" },
                     "sqlAdministratorPassword": { "value": "[parameters('adminPassword')]" }
                 } 
@@ -183,7 +198,7 @@
                 }, 
                 "parameters": { 
                     "ServiceBusNamespace": { "value": "[variables('ServiceBusNamespace')]" },
-                    "ServiceBusTier": { "value": "[parameters('serviceBusTier')]" },
+                    "ServiceBusTier": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['serviceBusTier']]" },
                     "queueName": { "value": "[variables('queuename')]" }
                 } 
             } 
@@ -204,8 +219,8 @@
                 }, 
                 "parameters": { 
                     "DomainPrefix": { "value": "[variables('DomainPrefix')]" },
-                    "WebHostingPlan": { "value": "[parameters('WebHostingPlan')]" },
-                    "InstanceCount": { "value": "[parameters('InstanceCount')]" },
+                    "WebHostingPlan": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['WebHostingPlan']]" },
+                    "InstanceCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['InstanceCount']]" },
                     "sqlServerFQDN": { "value": "[reference('SQLDatabaseTemplate').outputs.databaseServerFQDN.value]" },
                     "sqlDatabaseName": { "value": "[[reference('SQLDatabaseTemplate').outputs.databaseName.value]" },
                     "sqlAdministratorLogin": { "value": "[parameters('adminUser')]" },
@@ -226,7 +241,7 @@
                 }, 
                 "parameters": { 
                     "storageAccountName": { "value": "[variables('StorageAccountName')]" },
-                    "storageAccountType": { "value": "[parameters('storageAccountType')]" }
+                    "storageAccountType": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['storageAccountType']]" }
                 } 
             } 
         },
@@ -264,6 +279,7 @@
                 }, 
                 "parameters": { 
                     "resourcePrefix": { "value": "[concat(parameters('resourcePrefix'),'rdp')]" },
+                    "vmSize": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['jumpboxVMSize']]" },
                     "adminUser": { "value": "[parameters('adminUser')]" },
                     "adminPassword": { "value": "[parameters('adminPassword')]" },
                     "subnetResourceId": { "value": "[reference('vnetTemplate').outputs.subnetIDs.value.management]" },
@@ -288,6 +304,8 @@
                 }, 
                 "parameters": { 
                     "resourcePrefix": { "value": "[concat(parameters('resourcePrefix'), 'fe')]" },
+                    "vmSize": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['loadbalancedVMSize']]" },
+                    "vmCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['loabalancedVMCount']]" },
                     "publicPort": { "value": "[variables('frontEndAppPort')]"},
                     "adminUser": { "value": "[parameters('adminUser')]" },
                     "adminPassword": { "value": "[parameters('adminPassword')]" },
@@ -312,6 +330,10 @@
                 }, 
                 "parameters": { 
                     "resourcePrefix": { "value": "[parameters('resourcePrefix')]" },
+                    "nodeSize" : { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['nodeSize']]" },
+                    "durabilityLevel" : { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]" },
+                    "reliabilityLevel" : { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['reliabilityLevel']]" },
+                    "nodeInstanceCount" : { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['nodeInstanceCount']]" },
                     "svcFabSettings": { "value": "[variables('svcFabSettings')]"},
                     "adminUser": { "value": "[parameters('adminUser')]" },
                     "adminPassword": { "value": "[parameters('adminPassword')]" },
