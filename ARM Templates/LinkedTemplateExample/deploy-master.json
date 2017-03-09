@@ -222,7 +222,7 @@
                     "WebHostingPlan": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['WebHostingPlan']]" },
                     "InstanceCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['InstanceCount']]" },
                     "sqlServerFQDN": { "value": "[reference('SQLDatabaseTemplate').outputs.databaseServerFQDN.value]" },
-                    "sqlDatabaseName": { "value": "[[reference('SQLDatabaseTemplate').outputs.databaseName.value]" },
+                    "sqlDatabaseName": { "value": "[reference('SQLDatabaseTemplate').outputs.databaseName.value]" },
                     "sqlAdministratorLogin": { "value": "[parameters('adminUser')]" },
                     "sqlAdministratorPassword": { "value": "[parameters('adminPassword')]" },
                     "svcbusSendPolicy": { "value": "[reference('ServiceBusTemplate').outputs.sendPolicy.value]" }
