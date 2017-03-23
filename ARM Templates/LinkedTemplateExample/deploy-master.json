@@ -184,7 +184,8 @@
                     "sqlAdministratorLogin": { "value": "[parameters('adminUser')]" },
                     "sqlAdministratorPassword": { "value": "[parameters('adminPassword')]" }
                 } 
-            } 
+            },
+            "comment" : "call this back when this deployment completes"
         },
         { 
             "type": "Microsoft.Resources/deployments", 
