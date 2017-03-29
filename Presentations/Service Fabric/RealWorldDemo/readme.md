@@ -1,0 +1,1 @@
+password for **sample** self-signed certificates is: samplecertificate
