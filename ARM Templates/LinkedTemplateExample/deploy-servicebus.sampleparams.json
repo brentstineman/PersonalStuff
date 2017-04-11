@@ -12,10 +12,10 @@
     "ServiceBusNamespace": {
       "value": ""
     },
-    "EventHubName": {
+    "ServiceBusTier": {
       "value": ""
     },
-    "ServiceBusTier": {
+    "queueName": {
       "value": ""
     },
     "Capacity": {

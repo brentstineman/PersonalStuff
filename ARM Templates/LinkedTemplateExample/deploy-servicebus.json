@@ -120,8 +120,8 @@
                 "queueName" : "[parameters('queueName')]",
                 "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('queueName'),'/messages')]",
                 "policyName": "[parameters('ManagePolicyName')]",
-                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryKey]",
-                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('ManagePolicyName')),variables('ehApiVersion')).primaryConnectionString]"
+                "policyKey" : "[listKeys(parameters('ManagePolicyName'),variables('ehApiVersion')).primaryKey]",
+                "connectionString" : "[listKeys(parameters('ManagePolicyName'),variables('ehApiVersion')).primaryConnectionString]"
             }
         },
         "SendPolicy" : {
@@ -131,8 +131,8 @@
                 "queueName" : "[parameters('queueName')]",
                 "uri" : "[concat(reference(parameters('ServiceBusNamespace')).serviceBusEndpoint,parameters('queueName'),'/messages')]",
                 "policyName": "[parameters('SenderPolicyName')]",
-                "policyKey" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryKey]",
-                "connectionString" : "[listKeys(resourceId(concat('Microsoft.ServiceBus/namespaces/Queues/AuthorizationRules'),parameters('ServiceBusNamespace'),parameters('queueName'),parameters('SenderPolicyName')),variables('ehApiVersion')).primaryConnectionString]"
+                "policyKey" : "[listKeys(parameters('SenderPolicyName'),variables('ehApiVersion')).primaryKey]",
+                "connectionString" : "[listKeys(parameters('SenderPolicyName'),variables('ehApiVersion')).primaryConnectionString]"
             }
         }
     }
