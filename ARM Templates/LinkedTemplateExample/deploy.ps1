@@ -117,11 +117,17 @@ $templateParameters = @{
 $deploymentName = "Deployment-{0:yyyy-MM-dd-HH-mm-ss}" -f (Get-Date)
 Write-Host
 Write-Host "Deploying application... ($deploymentName)"
+
+#$result = New-AzureRmResourceGroupDeployment `
+#            -ResourceGroupName $ResourceGroupName `
+#            -Name $deploymentName `
+#            -TemplateFile "$scriptRoot\deploy-master.json" `
+#            -TemplateParameterObject $templateParameters
 $result = New-AzureRmResourceGroupDeployment `
             -ResourceGroupName $ResourceGroupName `
             -Name $deploymentName `
-            -TemplateFile "$scriptRoot\deploy-master.json" `
-            -TemplateParameterObject $templateParameters
+            -TemplateFile "$scriptRoot\deploy-master-secure.json" `
+            -TemplateParameterFile "$scriptRoot\deploy-master-secure.privateparams.json"
 
 Write-Host
 Write-Host "Done."
