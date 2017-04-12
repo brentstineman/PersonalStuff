@@ -1073,7 +1073,8 @@
         "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[2], variables('saSuffix'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('lbFrontEnd')['Name'])]"
+        "[concat('Microsoft.Network/loadBalancers/', variables('lbFrontEnd')['Name'])]",
+        "[concat('Microsoft.Compute/virtualMachines', variables('rdpMachine')['Name'])]"
       ],
       "properties": {
         "overprovision": "[variables('overProvision')]",
@@ -1170,7 +1171,8 @@
         "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[2], variables('saSuffix'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('lbBackEnd')['Name'])]"
+        "[concat('Microsoft.Network/loadBalancers/', variables('lbBackEnd')['Name'])]",
+        "[concat('Microsoft.Compute/virtualMachines', variables('rdpMachine')['Name'])]"
       ],
       "properties": {
         "overprovision": "[variables('overProvision')]",
@@ -1267,7 +1269,8 @@
         "[concat('Microsoft.Storage/storageAccounts/', variables('uniqueStringArray')[2], variables('saSuffix'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
         "[concat('Microsoft.Storage/storageAccounts/', variables('supportLogStorageAccountName'))]",
-        "[concat('Microsoft.Network/loadBalancers/', variables('lbMgmnt')['Name'])]"
+        "[concat('Microsoft.Network/loadBalancers/', variables('lbMgmnt')['Name'])]",
+        "[concat('Microsoft.Network/networkInterfaces', variables('rdpMachine')['nicName'])]"
       ],
       "properties": {
         "overprovision": "[variables('overProvision')]",

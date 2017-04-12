@@ -1,0 +1,183 @@
+/*
+* This template will create an Azure VMSS that will act as a Service Fabric Node Type. 
+* It requires that you pass in details regarding the subnet the VMSS will be placed in. 
+* Optionally you can specify the IP configuration to help associate the VM scale set with 
+* a LB if you want. 
+* 
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "vmssName" : {
+            "type": "string",
+            "metadata": {
+                "description": "The name for this VMSS."
+            }            
+        },
+       "nodeSize": { 
+            "type": "string", 
+            "defaultValue": "Standard_D2_v2", 
+            "allowedValues": [ 
+                "Standard_A1", 
+                "Standard_A2", 
+                "Standard_A1_v2", 
+                "Standard_A2_v2",
+                "Standard_D1_v2", 
+                "Standard_D2_v2" 
+            ], 
+            "metadata": { 
+                "description": "Specifies the pricing/performance. (only a sample set of allowed values is listed)" 
+            }
+        }, 
+        "adminUser": {
+            "type": "string",
+            "metadata": {
+                "description": "The admin user of the VM"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password of the admin user of the VM"
+            }
+        },
+        "nodeImageReference": {
+            "type": "object", 
+            "metadata": { 
+                "description": "The OS image for this VMSS" 
+            }            
+        },
+        "nodeInstanceCount": { 
+            "type": "int", 
+            "defaultValue": 5, 
+            "minValue": 3,
+            "metadata": { 
+                "description": "The number of node instances in the clusters" 
+            }
+        },
+        "ipConfig": { 
+            "type": "object", 
+            "metadata": { 
+                "description": "The IP configuration for the VMSS" 
+            }
+        },
+        "durabilityLevel": {
+            "type": "string",
+            "allowedValues": [
+                "Bronze",
+                "Silver",
+                "Gold",
+                "Platinum"
+            ],
+            "defaultValue": "Bronze",
+            "metadata": {
+                "description": "Durability level of the VM Scale Sets for all nodes"
+            }
+        },
+        "svcfabProtectedSettings": { 
+            "type": "object", 
+            "metadata": { 
+                "description": "The protected settings for the service fabric extensions." 
+            }
+        },
+        "svcfabSettings": { 
+            "type": "object", 
+            "metadata": { 
+                "description": "The 'un-protected' settings for the service fabric extensions." 
+            }
+        },
+        "osSecrets": { 
+            "type": "object", 
+            "defaultValue": "",
+            "metadata": { 
+                "description": "The The OS Secrets for the VMSS instanes" 
+            }
+        },
+        "overprovision": { 
+            "type": "string",
+            "defaultValue": "false",
+            "metadata": {
+                "description": "Should the VMSS overprovision or not"
+            }   
+        }
+    },
+    "variables": {
+        "vmResourceAPI": "2016-04-30-preview",
+        "vmssName": "[parameters('vmssName')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "name": "[variables('vmssName')]",
+            "apiVersion": "[variables('vmResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "[parameters('nodeSize')]",
+                "capacity": "[parameters('nodeInstanceCount')]",
+                "tier": "Standard"
+            },
+            "properties": {
+                "overprovision": "[parameters('overProvision')]",
+                "upgradePolicy": {
+                    "mode": "Automatic"
+                },
+                "virtualMachineProfile": {
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "[concat(variables('vmssName'), 'nic')]",
+                                "properties": {
+                                    "primary": true,
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "ipconfig1",
+                                            "properties": "[parameters('ipConfig')]"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('vmssName')]",
+                        "adminPassword": "[parameters('adminPassword')]",
+                        "adminUsername": "[parameters('adminUser')]",
+                        "windowsConfiguration": {
+                            "provisionVMAgent": true,
+                            "enableAutomaticUpdates": true
+                        },
+                        "secrets":  [ "[parameters('osSecrets')]" ]
+                    },
+                    "storageProfile": {
+                        "imageReference": "[parameters('nodeImageReference')]",
+                        "osDisk": {
+                            "caching": "ReadOnly",
+                            "createOption": "FromImage"
+                        }
+                    },
+                    "extensionProfile": {
+                        "extensions": [
+                            {
+                                "name": "[concat('ServiceFabricNodeVmExt',variables('vmssName'))]",
+                                "properties": {
+                                    "publisher": "Microsoft.Azure.ServiceFabric",
+                                    "type": "ServiceFabricNode",
+                                    "typeHandlerVersion": "1.0",
+                                    "autoUpgradeMinorVersion": false,
+                                    "protectedSettings": "[parameters('svcfabProtectedSettings')]",
+                                    "settings": "[parameters('svcfabSettings')]"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    /* outputs: 
+    */
+    "outputs": {
+
+    }
+}
