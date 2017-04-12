@@ -88,10 +88,10 @@
             }
         },
         "osSecrets": { 
-            "type": "object", 
-            "defaultValue": "",
+            "type": "array", 
+            "defaultValue": [ ],
             "metadata": { 
-                "description": "The The OS Secrets for the VMSS instanes" 
+                "description": "The OS Secrets for the VMSS instanes" 
             }
         },
         "overprovision": { 
@@ -147,7 +147,7 @@
                             "provisionVMAgent": true,
                             "enableAutomaticUpdates": true
                         },
-                        "secrets":  [ "[parameters('osSecrets')]" ]
+                        "secrets": "[parameters('osSecrets')]"
                     },
                     "storageProfile": {
                         "imageReference": "[parameters('nodeImageReference')]",
