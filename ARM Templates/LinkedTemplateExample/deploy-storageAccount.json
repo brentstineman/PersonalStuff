@@ -53,6 +53,7 @@
             "properties": {
                "accountType": "[parameters('storageAccountType')]",
                "encryption": { 
+                   "keySource": "Microsoft.Storage",
                     "services": {
                         "blob": { "enabled": true }
                     }
