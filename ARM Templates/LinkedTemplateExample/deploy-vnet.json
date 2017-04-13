@@ -120,7 +120,49 @@
                         "direction": "Inbound"
                         }
                     },
-                    /* allow RDP within the net */ 
+                    /* allow ports within vnet that are used by the fabric to talk between nodes */
+                    {
+                        "name": "allowSvcFabCluser",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[parameters('svcFabSettings')['clusterPorts']]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3920,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow fabric ephemeral ports within the vnet */
+                    {
+                        "name": "allowSvcFabEphemeral",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[concat(parameters('svcFabSettings')['ephemeralStartPort'], '-', parameters('svcFabSettings')['ephemeralEndPort'])]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3930,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow SMB traffic within the net, used by fabric to move packages around */
+                    {
+                        "name": "allowSvcFabSMB",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "445",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3940,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow RDP within the net */
                     {
                         "name": "allowVNetRDP",
                         "properties": {
@@ -131,6 +173,20 @@
                         "destinationAddressPrefix": "*",
                         "access": "Allow",
                         "priority": 3950,
+                        "direction": "Inbound"
+                        }
+                    },
+                    /* allow fabric application ports within the vnet */
+                    {
+                        "name": "allowSvcFabApplication",
+                        "properties": {
+                        "protocol": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "[concat(parameters('svcFabSettings')['applicationStartPort'], '-', parameters('svcFabSettings')['applicationEndPort'])]",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "access": "Allow",
+                        "priority": 3960,
                         "direction": "Inbound"
                         }
                     },

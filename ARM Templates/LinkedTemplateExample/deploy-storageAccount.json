@@ -31,7 +31,7 @@
         }
     },
     "variables": {
-        "stgApiVersion": "2015-06-15",
+        "stgApiVersion": "2016-01-01",
         "storageAccountName" : "[toLower(parameters('storageAccountName'))]",
         "accountResourceId" : "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
     },
@@ -45,8 +45,18 @@
             "tags": {
                 "displayName": "Storage Account"
             },
+            "kind": "Storage",
+            "sku": {
+                "name": "[parameters('storageAccountType')]",
+                "tier": "Standard"
+            },
             "properties": {
-               "accountType": "[parameters('storageAccountType')]"
+               "accountType": "[parameters('storageAccountType')]",
+               "encryption": { 
+                    "services": {
+                        "blob": { "enabled": true }
+                    }
+               }
             }
         }
     ],
