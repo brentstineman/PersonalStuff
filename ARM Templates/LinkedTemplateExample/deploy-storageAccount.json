@@ -51,7 +51,6 @@
                 "tier": "Standard"
             },
             "properties": {
-               "accountType": "[parameters('storageAccountType')]",
                "encryption": { 
                    "keySource": "Microsoft.Storage",
                     "services": {
