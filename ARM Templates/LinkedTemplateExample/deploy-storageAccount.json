@@ -51,12 +51,12 @@
                 "tier": "Standard"
             },
             "properties": {
-               "encryption": { 
-                   "keySource": "Microsoft.Storage",
+                "encryption": { 
+                    "keySource": "Microsoft.Storage",
                     "services": {
                         "blob": { "enabled": true }
                     }
-               }
+                }
             }
         }
     ],
@@ -69,8 +69,8 @@
             "value": {
                 "resourceId" : "[variables('accountResourceId')]",
                 "accountName" : "[variables('storageAccountName')]",
-                "primaryKey": "[listKeys(variables('accountResourceId'), variables('stgApiVersion')).key1]",
-                "secondaryKey": "[listKeys(variables('accountResourceId'), variables('stgApiVersion')).key2]"
+                "primaryKey": "[listKeys(variables('accountResourceId'), variables('stgApiVersion')).keys[0]]",
+                "secondaryKey": "[listKeys(variables('accountResourceId'), variables('stgApiVersion')).keys[1]]"
             }
         }
     }
