@@ -17,7 +17,7 @@
         },
         "storageAccountType": {
             "type": "string",
-            "defaultValue": "Standard_GRS",
+            "defaultValue": "Standard_LRS",
             "allowedValues": [
                 "Standard_LRS",
                 "Standard_ZRS",
@@ -51,6 +51,7 @@
                 "tier": "Standard"
             },
             "properties": {
+               "accountType": "[parameters('storageAccountType')]",
                "encryption": { 
                     "services": {
                         "blob": { "enabled": true }
