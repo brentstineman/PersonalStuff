@@ -51,7 +51,6 @@
                 "tier": "Standard"
             },
             "properties": {
-               "accountType": "[parameters('storageAccountType')]",
                "encryption": { 
                     "services": {
                         "blob": { "enabled": true }
