@@ -1369,10 +1369,10 @@
         "clientCertificateThumbprints": [ ],
         "clusterState": "Default",
         "diagnosticsStorageAccountConfig": {
-          "blobEndpoint": "[concat('https://',variables('supportLogStorageAccountName'),'.blob.core.windows.net/')]",
-          "protectedAccountKeyName": "StorageAccountKey1",
-          "queueEndpoint": "[concat('https://',variables('supportLogStorageAccountName'),'.queue.core.windows.net/')]",
           "storageAccountName": "[variables('supportLogStorageAccountName')]",
+          "protectedAccountKeyName": "StorageAccountKey1",
+          "blobEndpoint": "[concat('https://',variables('supportLogStorageAccountName'),'.blob.core.windows.net/')]",
+          "queueEndpoint": "[concat('https://',variables('supportLogStorageAccountName'),'.queue.core.windows.net/')]",
           "tableEndpoint": "[concat('https://',variables('supportLogStorageAccountName'),'.table.core.windows.net/')]"
         },
         "fabricSettings": [ ],

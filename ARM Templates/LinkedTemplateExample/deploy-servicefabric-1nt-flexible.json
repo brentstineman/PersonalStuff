@@ -1,7 +1,53 @@
 /*
-* This template will deploy a unsecured service fabric cluster. The cluster will contain a single VM scaleSet
-* and node type. The cluster is fronted by a load balancer for the gateway/management ports which is placed on 
-* private IP of your choosing. 
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+#
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This template has been crafted by deploy either an open, unsecured Service Fabric cluster or a
+# cluster secured via certificates. Unfortunately, its currently not functional. Please do not attempt to use.
+#
+# This template is dependent on linked templates for the storage account to be used for diagnostics 
+# by the VM scale sets, as well as a linked template to create the VMSS. 
+#
+# Modifications
+# 2017/04/19 : Initial publication
+#
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
+# ########### WARNING DOES NOT WORK ########### ########### WARNING DOES NOT WORK ###########
 */
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
@@ -96,17 +142,11 @@
                 "description": "Reliability level for all Service Fabric node types"
             }
         },        
-        "subnetResourceId": {
-            "type": "string",
-            "metadata": {
-                "description": "The Resource ID of the vNEt Subnet into which the VMSS should be placed. "
-            }            
-        },
-        "clusterGatewayIP": {
-            "type": "string",
-            "metadata": {
-                "description": "The private IP to be used by the load balancer"
-            }            
+        "clusterGatewayIPConfig": { 
+            "type": "object", 
+            "metadata": { 
+                "description": "The gluster's management gateway IP configuration" 
+            }
         },
         "clusterProtectionLevel" : {
             "type": "string",
@@ -163,6 +203,7 @@
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
         "StorageAccountName": "[concat(toLower(parameters('resourcePrefix')), 'logs')]",
         "clusterName": "[concat(parameters('resourcePrefix'), '-svcfab')]",
+        "clusterResourceId": "[resourceId('Microsoft.ServiceFabric/clusters', variables('clusterName'))",
         /* cluster node type OS image */
         "nodeImageReference": {
             "publisher": "MicrosoftWindowsServer",
@@ -172,7 +213,7 @@
         },
         "loadbalancerName": "[concat(tolower(parameters('resourcePrefix')), '-sflb')]",
         "loadbalancerId": "[resourceId('Microsoft.Network/loadBalancers',variables('loadbalancerName'))]",
-        "loadbalancerProbeName": "[concat('AppPortProbe-', parameters('svcFabSettings')['httpGatewayPort'])]",
+        "loadbalancerProbeName": "[concat('AppPortProbe-', parameters('svcFabSettings').httpGatewayPort)]",
         "loadbalancer" : {
             "IPConfig": "[concat(variables('loadbalancerId'),'/frontendIPConfigurations/LoadBalancerIPConfig')]",
             "PoolID": "[concat(variables('loadbalancerId'),'/backendAddressPools/LoadBalancerBEAddressPool')]",
@@ -180,45 +221,37 @@
         },
         "vmssDeploymentName": "[concat(deployment().name, '-svcFabVMSS')]",
         "vmssTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-VMSS.json'), parameters('templateSASToken'))]",
-        "clusterSecurityConfigurations" : {
-            "None" : {
-                "vmssFabricsettings": {
-                    "clusterEndpoint": "[reference(variables('clusterName')).clusterEndpoint]",
-                    "nodeTypeRef": "[variables('vmssName')]",
-                    "dataPath": "D:\\\\SvcFab",
-                    "durabilityLevel": "[parameters('durabilityLevel')]"
-                },
-                "clusterCertificate": { },
-                "clusterFabricSettings": { },
-                "clusterGatewayProtocol": "http"
+        "clusterCertificateValue": "",
+        "clusterSecurityConfigurations" : { 
+            "None" : { 
+                "vmssFabricSettingsCertificate": { },
+                "clusterCertificate": { }, 
+                "clusterFabricSettings": [ ],
+                "clusterGatewayProtocol": "http" 
             },
             "EncryptAndSign" : {
-                "vmssFabricsettings": {
-                    "clusterEndpoint": "[reference(variables('clusterName')).clusterEndpoint]",
-                    "nodeTypeRef": "[variables('vmssName')]",
-                    "dataPath": "D:\\\\SvcFab",
-                    "durabilityLevel": "[parameters('durabilityLevel')]",
-                    "certificate": {
-                        "thumbprint": "[parameters('clusterCertificateThumbprint')]",
-                        "x509StoreName": "[parameters('clusterCertificateStoreValue')]"
-                    }
-                },
-                "clusterCertificate" :{
+                "vmssFabricSettingsCertificate": {
                     "thumbprint": "[parameters('clusterCertificateThumbprint')]",
                     "x509StoreName": "[parameters('clusterCertificateStoreValue')]"
                 },
-                "clusterFabricSettings": {
-                    "name": "Security",
-                    "parameters": [
-                        {
-                            "name": "ClusterProtectionLevel",
-                            "value": "[parameters('clusterProtectionLevel')]"
-                        }
-                    ]
+                "clusterCertificate": {
+                    "thumbprint": "[parameters('clusterCertificateThumbprint')]",
+                    "x509StoreName": "[parameters('clusterCertificateStoreValue')]"
                 },
+                "clusterFabricSettings": [ 
+                    {
+                        "name": "Security",
+                        "parameters": [
+                            {
+                                "name": "ClusterProtectionLevel",
+                                "value": "[parameters('clusterProtectionLevel')]"
+                            }
+                        ]
+                    }
+                ],
                 "clusterGatewayProtocol": "https"
             }
-        }
+        } 
     },
     "resources": [
         {
@@ -247,13 +280,7 @@
                 "frontendIPConfigurations": [
                     {
                         "name": "LoadBalancerIPConfig",
-                        "properties": {
-                            "subnet": {
-                                "id": "[parameters('subnetResourceId')]"
-                            },
-                            "privateIPAddress": "[parameters('clusterGatewayIP')]",
-                            "privateIPAllocationMethod": "Static"
-                        }
+                        "properties": "[parameters('clusterGatewayIPConfig')]"
                     }
                 ],
                 "backendAddressPools": [
@@ -268,12 +295,12 @@
                             "backendAddressPool": {
                                 "id": "[variables('loadbalancer')['PoolID']]"
                             },
-                            "backendPort": "[parameters('svcFabSettings')['tcpGatewayPort']]",
+                            "backendPort": "[parameters('svcFabSettings').tcpGatewayPort]",
                             "enableFloatingIP": false,
                             "frontendIPConfiguration": {
                                 "id": "[variables('loadbalancer')['IPConfig']]"
                             },
-                            "frontendPort": "[parameters('svcFabSettings')['tcpGatewayPort']]",
+                            "frontendPort": "[parameters('svcFabSettings').tcpGatewayPort]",
                             "idleTimeoutInMinutes": 5,
                             "probe": {
                                 "id": "[variables('loadbalancer')['ProbeID']]"
@@ -287,12 +314,12 @@
                             "backendAddressPool": {
                                 "id": "[variables('loadbalancer')['PoolID']]"
                             },
-                            "backendPort": "[parameters('svcFabSettings')['httpGatewayPort']]",
+                            "backendPort": "[parameters('svcFabSettings').httpGatewayPort]",
                             "enableFloatingIP": false,
                             "frontendIPConfiguration": {
                                 "id": "[variables('loadbalancer')['IPConfig']]"
                             },
-                            "frontendPort": "[parameters('svcFabSettings')['httpGatewayPort']]",
+                            "frontendPort": "[parameters('svcFabSettings').httpGatewayPort]",
                             "idleTimeoutInMinutes": 5,
                             "probe": {
                                 "id": "[variables('loadbalancer')['ProbeID']]"
@@ -307,60 +334,16 @@
                         "properties": {
                             "intervalInSeconds": 5,
                             "numberOfProbes": 2,
-                            "port": "[parameters('svcFabSettings')['httpGatewayPort']]",
+                            "port": "[parameters('svcFabSettings').httpGatewayPort]",
                             "protocol": "Tcp"
                         }
                     }
                 ]
             }
         },
-        /* VM Scale Set nodes */    
-        {
-            "type": "Microsoft.Resources/deployments", 
-            "name": "[variables('vmssDeploymentName')]", 
-            "apiVersion": "[variables('deploymentAPI')]",
-            "properties": { 
-                "mode": "Incremental", 
-                "templateLink": {
-                    "uri": "[variables('vmssTemplateURI')]",
-                    "contentVersion": "1.0.0.0"
-                }, 
-                "parameters": { 
-                    "vmssName": { "value": "[variables('vmssName')]" },
-                    "nodeSize": { "value": "[parameters('nodeSize')]" },
-                    "adminUser": { "value": "[parameters('adminUser')]" },
-                    "adminPassword": { "value": "[parameters('adminPassword')]" },
-                    "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
-                    "nodeInstanceCount": { "value": "[parameters('nodeInstanceCount')]" },
-                    "ipConfig": { 
-                        "value": {
-                            "subnet": {
-                                "id": "[parameters('subnetResourceId')]"
-                            },
-                            "loadBalancerBackendAddressPools": [
-                                {
-                                    "id": "[variables('loadbalancer')['PoolID']]"
-                                }
-                            ]
-                        }
-                    },
-                    "durabilityLevel": { "value": "[parameters('durabilityLevel')]" },
-                    "svcfabProtectedSettings": { 
-                        "value": {
-                            "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
-                            "StorageAccountKey2": "[reference(variables('storageDeploymentName')).outputs.properties.value.secondaryKey]"
-                        }
-                    },
-                    "svcfabSettings": { 
-                        "value": "[variables('clusterSecurityConfigurations')[parameters('clusterProtectionLevel')]['vmssFabricsettings']]"
-                    },
-                    "osSecrets": {
-                        "value": "[parameters('osSecrets')]"
-                    }
-                } 
-            } 
-        },
         /* service fabric cluster definition */    
+        /*"[variables('clusterSecurityConfigurations')[parameters('clusterProtectionLevel')].clusterFabricSettings]", */
+         /* "[concat(variables('clusterSecurityConfigurations')[parameters('clusterProtectionLevel')].clusterGatewayProtocol, '://10.0.3.4:', parameters('svcFabSettings').httpGatewayPort)]", */
         {
             "apiVersion": "2016-09-01",
             "type": "Microsoft.ServiceFabric/clusters",
@@ -380,8 +363,8 @@
                     "queueEndpoint": "[concat('https://',reference(variables('storageDeploymentName')).outputs.properties.value.accountName,'.queue.core.windows.net/')]",
                     "tableEndpoint": "[concat('https://',reference(variables('storageDeploymentName')).outputs.properties.value.accountName,'.table.core.windows.net/')]"
                 },
-                "fabricSettings": [ "[variables('clusterSecurityConfigurations')[parameters('clusterProtectionLevel')]['clusterFabricSettings']]" ],
-                "managementEndpoint": "[concat(variables('clusterSecurityConfigurations')[parameters('clusterProtectionLevel')]['clusterGatewayProtocol'], '://', parameters('clusterGatewayIP'), ':', parameters('svcFabSettings')['httpGatewayPort'])]",                
+                "fabricSettings": [ ], 
+                "managementEndpoint": "http://10.0.3.4:19080",
                 "nodeTypes": [
                     {
                         "name": "[variables('vmssName')]",
@@ -405,6 +388,63 @@
                 "reliabilityLevel": "[parameters('reliabilityLevel')]",
                 "vmImage": "Windows"
             }
+        },
+        /* VM Scale Set nodes */    
+        {
+            "type": "Microsoft.Resources/deployments", 
+            "name": "[variables('vmssDeploymentName')]", 
+            "apiVersion": "[variables('deploymentAPI')]",
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('vmssTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "dependsOn": [
+                    "[variables('storageDeploymentName')]",
+                    "[variables('loadbalancerName')]"
+                ] ,
+                "parameters": { 
+                    "vmssName": { "value": "[variables('vmssName')]" },
+                    "nodeSize": { "value": "[parameters('nodeSize')]" },
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "[parameters('adminPassword')]" },
+                    "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
+                    "nodeInstanceCount": { "value": "[parameters('nodeInstanceCount')]" },
+                    "ipConfig": { 
+                        "value": {
+                            "subnet": {
+                                "id": "[parameters('clusterGatewayIPConfig').subnet.id]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('loadbalancer')['PoolID']]"
+                                }
+                            ]
+                        }
+                    },
+                    "durabilityLevel": { "value": "[parameters('durabilityLevel')]" },
+                    "svcfabProtectedSettings": { 
+                        "value": {
+                            "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
+                            "StorageAccountKey2": "[reference(variables('storageDeploymentName')).outputs.properties.value.secondaryKey]"
+                        }
+                    },
+                    "svcfabSettings": {
+                        "clusterEndpoint": "[reference(variables('clusterName')).clusterEndpoint]",
+                        "nodeTypeRef": "[variables('vmssName')]",
+                        "dataPath": "D:\\\\SvcFab", 
+                        "durabilityLevel": "[parameters('durabilityLevel')]",
+                        "certificate": {
+                            "thumbprint": "",
+                            "x509StoreName": ""
+                        }
+                    },
+                    "osSecrets": {
+                        "value": "[parameters('osSecrets')]"
+                    }
+                } 
+            } 
         }
     ],
     /* outputs: 
