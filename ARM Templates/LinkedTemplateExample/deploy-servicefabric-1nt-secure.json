@@ -1,7 +1,31 @@
 /*
-* This template will deploy a unsecured service fabric cluster. The cluster will contain a single VM scaleSet
-* and node type. The cluster is fronted by a load balancer for the gateway/management ports which is placed on 
-* private IP of your choosing. 
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This template will create a certificate secured service fabric cluster with a single node type and its 
+# companion resources (an internal load balancer, the VMSS for the node type, and a storage account for the cluster 
+# and VMSS diagnostics). The expectation of this template is that the VNet that the cluster is being deployed too 
+# has already been created outside of this template.  
+#
+# For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
+#
+# Modifications
+# 2017/04/19 : Initial publication
+#
 */
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",

@@ -1,5 +1,33 @@
 /*
-* This template will create an Windows VM.
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This template will create a single Azure hosted virtual machine and its companion resources like
+# its NIC and an availability set. The template is designed to be flexible so you can pass the IP configuration
+# for the NIC into the template, thus allowing the VM to be either public or private. The template can be called 
+# to create a single VM, or used multiple times (perhaps inside of a loop) to create multiple VMs in the 
+# availability set, perhaps behind an Azure Load Balancer. 
+#
+# For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
+#
+# Modifications
+# 2017/04/19 : Initial publication
+#
 */
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
@@ -90,6 +118,7 @@
                 ]
             }
         },
+        /* An availability set */
         {
             "type": "Microsoft.Compute/availabilitySets",
             "name": "[variables('avsetName')]",
@@ -101,52 +130,53 @@
                 "managed": "true"
             }
         },
+        /* The VM */
         {
-        "type": "Microsoft.Compute/virtualMachines",
-        "name": "[variables('vmName')]",
-        "apiVersion": "2016-04-30-preview",
-        "location": "[resourceGroup().location]",
-        "dependsOn": [
-            "[resourceId('Microsoft.Network/networkInterfaces/', variables('nicName'))]",
-            "[resourceId('Microsoft.Compute/availabilitySets/', variables('avsetName'))]"
-        ],
-        "properties": {
-            "availabilitySet": {
-                "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('avsetName'))]"
-            },
-            "hardwareProfile": {
-                "vmSize": "[parameters('vmSize')]"
-            },
-            "osProfile": {
-                "computerName": "[variables('vmName')]",
-                "adminUsername": "[parameters('adminUser')]",
-                "adminPassword": "[parameters('adminPassword')]"
-            },
-            "storageProfile": {
-                "imageReference": {
-                    "publisher": "MicrosoftWindowsServer",
-                    "offer": "WindowsServer",
-                    "sku": "[parameters('windowsOSVersion')]",
-                    "version": "latest"
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('vmName')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('nicName'))]",
+                "[resourceId('Microsoft.Compute/availabilitySets/', variables('avsetName'))]"
+            ],
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets',variables('avsetName'))]"
                 },
-                "osDisk": {
-                    "Name" : "[concat(variables('vmName'), '-OSDisk')]",
-                    "createOption": "FromImage"
-                }
-            },
-            "networkProfile": {
-                "networkInterfaces": [
-                    {
-                        "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmName')]",
+                    "adminUsername": "[parameters('adminUser')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "[parameters('windowsOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "Name" : "[concat(variables('vmName'), '-OSDisk')]",
+                        "createOption": "FromImage"
                     }
-                ]
-            },
-            "diagnosticsProfile": {
-                "bootDiagnostics": {
-                    "enabled": false
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
                 }
             }
-        }
         }
     ],
     /* outputs: 
