@@ -1,7 +1,31 @@
 /*
-* This template will create an Azure SQL DB for use by Nether.
-* 
-* For more information, please refer to the Nether repository at: https://github.com/MicrosoftDX/nether/tree/master/deployment
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This template will create an Azure SQL DB and its parent virtual server. It also creates a default
+# firewall rule to allow Azure services to acces the database.  
+# This template is based on work done for the Nether project: https://github.com/microsoftdx/nether
+#
+# For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
+#
+# Modifications
+# 2017/04/19 : Initial publication
+#
 */
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
@@ -126,7 +150,7 @@
                 "version": "12.0"
             },
             "resources": [
-                /* this is the database to be used by Nether */
+                /* a sample database */
                 {
                     "type": "databases",
                     "name": "[parameters('databaseName')]",
