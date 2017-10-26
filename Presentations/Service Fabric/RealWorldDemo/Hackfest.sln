@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.9
+VisualStudioVersion = 15.0.27004.2005
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{A07B5EB6-E848-4116-A8D0-A826331D98C6}") = "Hackfest", "Hackfest\Hackfest.sfproj", "{EF86BAF9-39AE-4255-BC67-DC949CE69E97}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebFrontEnd", "WebFrontEnd\WebFrontEnd.csproj", "{5CE8F959-AC80-45DC-82AA-B29721735840}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebFrontEnd", "WebFrontEnd\WebFrontEnd.csproj", "{5CE8F959-AC80-45DC-82AA-B29721735840}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APIBackEnd", "APIBackEnd\APIBackEnd.csproj", "{3D5CBD3D-3107-4DFF-A7A8-0A8FBC7F5C97}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APIBackEnd", "APIBackEnd\APIBackEnd.csproj", "{3D5CBD3D-3107-4DFF-A7A8-0A8FBC7F5C97}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,6 +18,7 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{EF86BAF9-39AE-4255-BC67-DC949CE69E97}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{EF86BAF9-39AE-4255-BC67-DC949CE69E97}.Debug|Any CPU.Build.0 = Debug|x64
 		{EF86BAF9-39AE-4255-BC67-DC949CE69E97}.Debug|x64.ActiveCfg = Debug|x64
 		{EF86BAF9-39AE-4255-BC67-DC949CE69E97}.Debug|x64.Build.0 = Debug|x64
 		{EF86BAF9-39AE-4255-BC67-DC949CE69E97}.Debug|x64.Deploy.0 = Debug|x64
@@ -44,5 +45,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {38010ECD-EB8C-469C-A73E-07D4AD8334B0}
 	EndGlobalSection
 EndGlobal

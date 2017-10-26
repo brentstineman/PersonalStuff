@@ -123,7 +123,7 @@
     },
     "frontEndVMSize": {
       "type": "string",
-      "defaultValue": "Standard_D2",
+      "defaultValue": "Standard_D2_v2",
       "metadata": {
         "description": "Size/Sku used for the Front End node type instances"
       }
@@ -137,7 +137,7 @@
     },
     "backEndVMSize": {
       "type": "string",
-      "defaultValue": "Standard_D2",
+      "defaultValue": "Standard_D2_v2",
       "metadata": {
         "description": "Size/Sku used for the Back End node type instances"
       }
@@ -151,7 +151,7 @@
     },
     "mgmntVMSize": {
       "type": "string",
-      "defaultValue": "Standard_D2",
+      "defaultValue": "Standard_D2_v2",
       "metadata": {
         "description": "Size/Sku used for the Management node type instances"
       }
@@ -165,7 +165,7 @@
     },
     "rdpVMSize": {
       "type": "string",
-      "defaultValue": "Standard_D2",
+      "defaultValue": "Standard_D2_v2",
       "metadata": {
         "description": "Size/Sku used for the Management node type instances"
       }

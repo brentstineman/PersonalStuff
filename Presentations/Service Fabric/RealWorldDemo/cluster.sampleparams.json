@@ -1,0 +1,38 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "clustername": {
+      "value": ""
+    },
+    "adminUserName": {
+      "value": ""
+    },
+    "adminPassword": {
+      "value": ""
+    },
+    "frontEndLoadBalancedAppPort1" : {
+      "value": 8692
+    },
+    "frontEndLoadBalancedAppPort2" : {
+      "value": 8693
+    },
+    "VMSSSecrets": { 
+      "value": {
+        "sourceVault": {
+          "id": ""
+        },
+        "vaultCertificates": [
+          {
+            "certificateUrl": "",
+            "certificateStore": "MY"
+          },
+          {
+            "certificateUrl": "",
+            "certificateStore": "MY"
+          }
+        ]
+      }
+    }
+  }
+}

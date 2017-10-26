@@ -17,7 +17,7 @@
     <ServiceManifestRef ServiceManifestName="WebFrontEndPkg" ServiceManifestVersion="1.0.0" />
     <ConfigOverrides />
     <Policies>
-      <EndpointBindingPolicy EndpointRef="SecureServiceEndpoint" CertificateRef="ThingOne" />
+      <EndpointBindingPolicy EndpointRef="SecureServiceEndpoint" CertificateRef="FECert" />
     </Policies>
   </ServiceManifestImport>
   <DefaultServices>
@@ -40,6 +40,6 @@
     </Service>
   </DefaultServices>
   <Certificates>
-    <EndpointCertificate  Name="ThingOne" X509StoreName="MY" X509FindValue="59 df 28 92 07 a3 03 c6 94 ae 01 c0 e4 a8 4b 94 da b3 05 bc" />
+    <EndpointCertificate X509StoreName="MY" X509FindValue="59 df 28 92 07 a3 03 c6 94 ae 01 c0 e4 a8 4b 94 da b3 05 bc" Name="FECert" />
   </Certificates>
 </ApplicationManifest>
