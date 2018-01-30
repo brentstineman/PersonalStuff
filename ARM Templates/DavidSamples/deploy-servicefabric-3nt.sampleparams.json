@@ -5,12 +5,12 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "clusterPrefix": { "value": "" },
+        "resourcePrefix": { "value": "" },
         "svcFabSettings": {
             "value": {
-                "tcpGatewayPort": "",
-                "httpGatewayPort": "",
-                "reverseProxyPort": "",
+                "tcpGatewayPort": "19080",
+                "httpGatewayPort": "19000",
+                "reverseProxyPort": "19008",
                 "clusterPorts" : "1025-1027",
                 "applicationStartPort": "20000",
                 "applicationEndPort": "30000",
@@ -18,10 +18,24 @@
                 "ephemeralEndPort": "65534"
             }
         },
-        "adminUser": { "value": "" },
-        "adminPassword": { "value": "!" },
-        "subnetResourceId": { "value": "" },
-        "clusterGatewayIP": { "value": "" },
-        "templateBaseURL": { "value": "" }   
+        "managementEndpoint": { "value" : "" },
+        "nodeDetails": { "value": [ /* expects 3 */
+            {
+                "Name" : "NodeType1", 
+                "IsPrimary": false,
+                "InstanceCount": 3
+            },
+            {
+                "Name" : "NodeType2", 
+                "IsPrimary": false,
+                "InstanceCount": 3
+            },
+            {
+                "Name" : "Primary", 
+                "IsPrimary": true,
+                "InstanceCount": 3
+            }
+        ] },
+        "storageAccountName" : { "value" : "" }
     }
 }

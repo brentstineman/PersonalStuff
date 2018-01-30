@@ -82,10 +82,10 @@
     "variables": {
         "deploymentAPI" : "2015-01-01",
         "StorageAccountName": "[parameters('resourcePrefix')]",
+        "storageDeploymentName" : "DefaultStorageAccount",
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
         "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
         "LoadBalancerTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-loadbalancer.json'), parameters('templateSASToken'))]",
-        "svcfabTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-1nt.json'), parameters('templateSASToken'))]",
         "vNetSettings": { 
             "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
             "addressPrefix": "10.0.0.0/16",
@@ -94,6 +94,8 @@
                 "CIDR": "10.0.1.0/24"
             }
         },
+        "svcfabDeploymentName" : "[concat(parameters('resourcePrefix'), '-svcfab')]",
+        "svcfabTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-3nt.json'), parameters('templateSASToken'))]",
         "svcFabSettings": {
             "tcpGatewayPort": "19000",
             "httpGatewayPort": "19080",
@@ -104,6 +106,7 @@
             "ephemeralStartPort": "49152",
             "ephemeralEndPort": "65534"
         },
+        "durabilityLevel" : "Bronze",
         "publicIPName": "[concat(tolower(parameters('resourcePrefix')), 'public-ip')]",
         "publicLBName": "[concat(tolower(parameters('resourcePrefix')), 'public-lb')]",
         "frontEndAppPort1": 80,
@@ -186,7 +189,7 @@
     "resources": [ 
         { 
             "type": "Microsoft.Resources/deployments", 
-            "name": "Storage", 
+            "name": "[variables('storageDeploymentName')]", 
             "apiVersion": "[variables('deploymentAPI')]", 
             "properties": { 
                 "mode": "Incremental", 
@@ -208,14 +211,14 @@
             "properties": { 
                 "mode": "Incremental", 
                 "templateLink": {
-                    "uri": "[variables('LoadBalancerTemplateURI')]",
+                    "uri": "[variables('VNetTemplateURI')]",
                     "contentVersion": "1.0.0.0"
                 }, 
                 "parameters": {
                     "vNetSettings": { "value": "[variables('vNetSettings')]" },
                     "svcFabSettings": { "value": "[variables('svcFabSettings')]" },
                     "frontEndAppPort1": { "value": "[variables('frontEndAppPort1')]" },
-                    "frontEndAppPort2": { "value": "[variables('frontEndAppPort1')]" }
+                    "frontEndAppPort2": { "value": "[variables('frontEndAppPort2')]" }
                 } 
             } 
         },
@@ -240,7 +243,7 @@
             "properties": { 
                 "mode": "Incremental", 
                 "templateLink": {
-                    "uri": "[variables('VNetTemplateURI')]",
+                    "uri": "[variables('LoadBalancerTemplateURI')]",
                     "contentVersion": "1.0.0.0"
                 }, 
                 "parameters": { 
@@ -266,7 +269,7 @@
                             "backendPort": "[variables('svcFabSettings')['tcpGatewayPort']]"
                         }
                     },
-                    "ProbePort": { "value": "[variables('svcFabSettings')['httpGatewayPort']]" }
+                    "ProbePort": { "value": 19080 } /* having an issue with type conversion, will work on later */
 
                 } 
             } 
@@ -279,7 +282,7 @@
             "properties": { 
                 "mode": "Incremental", 
                 "templateLink": {
-                    "uri": "[variables('VNetTemplateURI')]",
+                    "uri": "[variables('LoadBalancerTemplateURI')]",
                     "contentVersion": "1.0.0.0"
                 }, 
                 "parameters": { 
@@ -289,7 +292,7 @@
                             "subnet": {
                                 "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
                             },
-                            "privateIPAddress": "",
+                            "privateIPAddress": "[variables('servicefabricLBIP1')]",
                             "privateIPAllocationMethod": "Static"
                         }
                     },
@@ -308,6 +311,54 @@
                         }
                     },
                     "ProbePort": { "value": "[variables('ProbePort')]" }
+                } 
+            } 
+        },
+        /* define the service fabric cluster */
+        {
+            "type": "Microsoft.Resources/deployments", 
+            "name": "[variables('svcfabDeploymentName')]", 
+            "apiVersion": "[variables('deploymentAPI')]",
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('vmssTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "vmssName": { "value": "[variables('vmssName')]" },
+                    "nodeSize": { "value": "[parameters('nodeSize')]" },
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "[parameters('adminPassword')]" },
+                    "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
+                    "nodeInstanceCount": { "value": "[parameters('nodeInstanceCount')]" },
+                    "ipConfig": { 
+                        "value": {
+                            "subnet": {
+                                "id": "[parameters('subnetResourceId')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[variables('loadbalancer')['PoolID']]"
+                                }
+                            ]
+                        }
+                    },
+                    "durabilityLevel": { "value": "[variables('durabilityLevel')]" },
+                    "svcfabProtectedSettings": { 
+                        "value": {
+                            "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
+                            "StorageAccountKey2": "[reference(variables('storageDeploymentName')).outputs.properties.value.secondaryKey]"
+                        }
+                    },
+                    "svcfabSettings": { 
+                        "value": {
+                            "clusterEndpoint": "[reference(variables('clusterName')).clusterEndpoint]",
+                            "nodeTypeRef": "[variables('vmssName')]",
+                            "dataPath": "D:\\\\SvcFab",
+                            "durabilityLevel": "[parameters('durabilityLevel')]"
+                        }
+                    }
                 } 
             } 
         }
