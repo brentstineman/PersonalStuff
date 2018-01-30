@@ -1,0 +1,40 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "loadbalancerName" : {
+            "value": ""
+        },
+        "LoadBalancerIPConfig": { 
+            "value": {
+                "subnet": {
+                    "id": ""
+                },
+                "privateIPAddress": "",
+                "privateIPAllocationMethod": "Static"
+            }
+        },
+        /* the above format works for a private IP, if doing a public IP, use an object like this...
+            {
+                "publicIPAddress": {
+                    "id": ""
+                }
+            }
+        */
+        "AppPort1": {
+            "value": {
+                "name": "HTTP",
+                "frontendPort": 80,
+                "backendPort": 80
+            }
+        },
+        "AppPort2": {
+            "value": {
+                "name": "HTTPS",
+                "frontendPort": 443,
+                "backendPort": 443
+            }
+        },
+        "ProbePort": { "value": 80 }
+    }
+}

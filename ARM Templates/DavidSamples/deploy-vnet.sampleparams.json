@@ -1,0 +1,30 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vNetSettings": { 
+            "value": {
+                "Name": "",
+                "addressPrefix": "10.0.0.0/16",
+                "subnetFrontEnd" : {
+                    "Name": "FrontEnd",
+                    "CIDR": "10.0.1.0/24"
+                }
+            }
+        },
+        "svcFabSettings": {
+            "value": {
+                "tcpGatewayPort": "19000",
+                "httpGatewayPort": "19080",
+                "reverseProxyPort": "19008",
+                "clusterPorts" : "1025-1027",
+                "applicationStartPort": "20000",
+                "applicationEndPort": "30000",
+                "ephemeralStartPort": "49152",
+                "ephemeralEndPort": "65534"
+            }
+        },
+        "frontEndAppPort1": { "value": 80 },
+        "frontEndAppPort2": { "value": 443 }
+    }
+}

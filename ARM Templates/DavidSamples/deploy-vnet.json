@@ -1,0 +1,237 @@
+/*
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This template will create a virtual network with one subnets and a NSG. The
+# template allows you to pass in parameters to set the address range for the subnet and sets up the NSG
+# rules with the assumption that we're deploying a service fabric cluster to the vnet and that we'll have 
+# two application ports that will need external access. The service fabric cluster will otherwise only be 
+# accessible from within the vnet. 
+#
+# For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
+#
+# Modifications
+# 2018/01/30 : Initial publication
+#
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "vNetSettings": {
+            "type": "object",
+            "metadata": {
+                "description": "Description of the VNet, used by NSG rules."
+            }
+        },
+        "svcFabSettings": {
+            "type": "object",
+            "metadata": {
+                "description": "Description of the Service Fabric Cluster, used by NSG rules."
+            }
+        },
+        "frontEndAppPort1": {
+            "type": "int",
+            "metadata": {
+                "description": "The application port 1 in the front end subnet"
+            }
+        },
+        "frontEndAppPort2": {
+            "type": "int",
+            "metadata": {
+                "description": "The application port 2 in the front end subnet"
+            }
+        }
+    },
+    "variables": {
+        "vnetResourceAPI": "2016-09-01",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vNetSettings')['Name'])]",
+        "vnetNSGName" : "[concat('nsg', parameters('vNetSettings')['subnetFrontEnd']['Name'])]",
+        "subnetFrontEndRef": "[concat(variables('vnetID'),'/subnets/', parameters('vNetSettings')['subnetFrontEnd']['Name'])]"
+    },
+    "resources": [
+        /* Network Security Group for the front end subnet */
+        /* this is where our gateway/proxy VMs will be hosted */
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('vnetNSGName')]",
+            "apiVersion": "[variables('vnetResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties" : {
+                "securityRules": [
+                    /* allow public application port 1 */ 
+                    {
+                        "name": "allowAppPort1",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[parameters('frontEndAppPort1')]",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 2000,
+                            "direction": "Inbound"
+                        }
+                    },
+                    /* allow public application port 2 */ 
+                    {
+                        "name": "allowAppPort2",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[parameters('frontEndAppPort2')]",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 2001,
+                            "direction": "Inbound"
+                        }
+                    },
+                    /* allow ports within vnet that are used by the fabric to talk between nodes */
+                    {
+                        "name": "allowSvcFabCluser",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[parameters('svcFabSettings')['clusterPorts']]",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 3920,
+                            "direction": "Inbound"
+                        }
+                    },
+                    /* allow fabric ephemeral ports within the vnet */
+                    {
+                        "name": "allowSvcFabEphemeral",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[concat(parameters('svcFabSettings')['ephemeralStartPort'], '-', parameters('svcFabSettings')['ephemeralEndPort'])]",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 3930,
+                            "direction": "Inbound"
+                        }
+                    },
+                    /* allow SMB traffic within the net, used by fabric to move packages around */
+                    {
+                        "name": "allowSvcFabSMB",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "445",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 3940,
+                            "direction": "Inbound"
+                        }
+                    },
+                    /* allow RDP within the net */
+                    {
+                        "name": "allowVNetRDP",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 3950,
+                            "direction": "Inbound"
+                        }
+                    },
+                    /* allow fabric application ports within the vnet */
+                    {
+                        "name": "allowSvcFabApplication",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "[concat(parameters('svcFabSettings')['applicationStartPort'], '-', parameters('svcFabSettings')['applicationEndPort'])]",
+                            "sourceAddressPrefix": "VirtualNetwork",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 3960,
+                            "direction": "Inbound"
+                        }
+                    },
+                    /* block all traffic except what we've explicitly allowed */ 
+                    {
+                        "name": "blockAll",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Deny",
+                            "priority": 4000,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "tags": {
+
+            }
+        },
+        /* virtual network with 3 subnets for each 'zone' of the cluster */        
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vNetSettings')['Name']]",
+            "apiVersion": "[variables('vnetResourceAPI')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/', concat('nsg', parameters('vNetSettings')['subnetFrontEnd']['Name']))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                "addressPrefixes": [
+                    "[parameters('vNetSettings')['addressPrefix']]"
+                ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('vNetSettings')['subnetFrontEnd']['Name']]",
+                        "properties": {
+                            "addressPrefix": "[parameters('vNetSettings')['subnetFrontEnd']['CIDR']]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat('nsg', parameters('vNetSettings')['subnetFrontEnd']['Name']))]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "tags": {
+
+            }
+        }
+    ],
+    /* outputs: 
+    */
+    "outputs": {
+         "subnetIDs" : {
+            "type" : "object",
+            "value": {
+                "frontEnd" : "[variables('subnetFrontEndRef')]"
+            }            
+        }
+    }
+}

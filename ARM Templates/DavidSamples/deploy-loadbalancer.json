@@ -1,0 +1,155 @@
+/*
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This template will create a load balancer using the specified front end IP configuraiton details, 
+# two application ports, and a single probe port. 
+#
+# For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
+#
+# Modifications
+# 2018/01/30 : Initial publication
+#
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "loadbalancerName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the load balancer."
+            }
+        },
+        "LoadBalancerIPConfig": {
+            "type": "object",
+            "metadata": {
+                "description": "The configuration of the LB's front end IP"
+            }
+        },
+        "AppPort1": {
+            "type": "object",
+            "metadata": {
+                "description": "The application port 1 settings"
+            }
+        },
+        "AppPort2": {
+            "type": "object",
+            "metadata": {
+                "description": "The application port 2 settings"
+            }
+        },
+        "ProbePort": {
+            "type": "int",
+            "metadata": {
+                "description": "The probe"
+            }
+        }
+    },
+    "variables": {
+        "NetworkProviderAPI" : "2016-09-01",
+        "loadbalancerName": "[tolower(parameters('loadbalancerName'))]",
+        "loadbalancerId": "[resourceId('Microsoft.Network/loadBalancers',variables('loadbalancerName'))]",
+        "loadbalancerProbeName": "[concat('AppPortProbe-', parameters('ProbePort'))]",
+        "loadbalancer" : {
+            "IPConfig": "[concat(variables('loadbalancerId'),'/frontendIPConfigurations/ApplicationLoadBalancer')]",
+            "PoolID": "[concat(variables('loadbalancerId'),'/backendAddressPools/LoadBalancerBEAddressPool')]",
+            "ProbeID": "[concat(variables('loadbalancerId'),'/probes/', variables('loadbalancerProbeName'))]"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('loadbalancerName')]",
+            "apiVersion": "[variables('NetworkProviderAPI')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "frontendIPConfigurations": [ {
+                    "name": "ApplicationLoadBalancer",
+                    "properties": "[parameters('LoadBalancerIPConfig')]"
+                } ],
+                "backendAddressPools": [
+                    {
+                        "name": "LoadBalancerBEAddressPool"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "[parameters('AppPort1')['name']]",
+                        "properties": {
+                            "backendAddressPool": {
+                                "id": "[variables('loadbalancer')['PoolID']]"
+                            },
+                            "backendPort": "[parameters('AppPort1')['backendPort']]",
+                            "enableFloatingIP": false,
+                            "frontendIPConfiguration": {
+                                "id": "[variables('loadbalancer')['IPConfig']]"
+                            },
+                            "frontendPort": "[parameters('AppPort1')['frontendPort']]",
+                            "idleTimeoutInMinutes": 5,
+                            "probe": {
+                                "id": "[variables('loadbalancer')['ProbeID']]"
+                            },
+                            "protocol": "Tcp"
+                        }
+                    },
+                    {
+                        "name": "[parameters('AppPort2')['name']]",
+                        "properties": {
+                            "backendAddressPool": {
+                                "id": "[variables('loadbalancer')['PoolID']]"
+                            },
+                            "backendPort": "[parameters('AppPort2')['backendPort']]",
+                            "enableFloatingIP": false,
+                            "frontendIPConfiguration": {
+                                "id": "[variables('loadbalancer')['IPConfig']]"
+                            },
+                            "frontendPort": "[parameters('AppPort2')['frontendPort']]",
+                            "idleTimeoutInMinutes": 5,
+                            "probe": {
+                                "id": "[variables('loadbalancer')['ProbeID']]"
+                            },
+                            "protocol": "Tcp"
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "[variables('loadbalancerProbeName')]",
+                        "properties": {
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2,
+                            "port": "[parameters('ProbePort')]",
+                            "protocol": "Tcp"
+                        }
+                    }
+                ]
+            }
+        }
+    ],
+    /* outputs: 
+    */
+    "outputs": {
+         "loadbalancerPools" : {
+            "type" : "object",
+            "value": {
+                "BackEndPoolId" : "[variables('loadbalancer')['PoolID']]"
+            }            
+        }
+    }
+}

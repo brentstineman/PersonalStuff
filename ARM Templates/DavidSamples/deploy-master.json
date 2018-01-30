@@ -1,0 +1,317 @@
+/*
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This file demonstrates the use of linked Azure Resource Manager (ARM) templates and techniques such 
+# as passing objects into and out of the various linked templates. It also demonstrates using parameters, variables, 
+# and objects to take a "generalized" input parameter (say: small, medium, large) and "explode" that into multiple 
+# detailed settings
+#
+# For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
+#
+# Modifications
+# 2017/04/19 : Initial publication
+#
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "resourcePrefix": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "metadata": {
+                "description": "The resource prefix (must be globally unique). only allows alpha characters." 
+            }
+        },
+        "deploymentSize": {
+            "type": "string",
+            "defaultValue": "Small", 
+            "allowedValues": [ 
+                "Dev (not for production)", 
+                "Small", 
+                "Medium", 
+                "Large"
+            ], 
+            "metadata": { 
+                "description": "The general size of the deployment" 
+            } 
+        },
+        "adminUser": {
+            "type": "string",
+            "metadata": {
+                "description": "The admin user"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password of the admin user"
+            }
+        },
+        "templateBaseURL": {
+            "type": "string",
+            "defaultValue": "[deployment().properties.templateLink.uri]",
+            "metadata": {
+                "description": "The base location for all linked templates."
+            }   
+        },
+        "templateSASToken": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The base location for all linked templates."
+            }   
+        }
+    },
+    "variables": {
+        "deploymentAPI" : "2015-01-01",
+        "StorageAccountName": "[parameters('resourcePrefix')]",
+        "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
+        "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
+        "LoadBalancerTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-loadbalancer.json'), parameters('templateSASToken'))]",
+        "svcfabTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-1nt.json'), parameters('templateSASToken'))]",
+        "vNetSettings": { 
+            "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
+            "addressPrefix": "10.0.0.0/16",
+            "subnetFrontEnd" : {
+                "Name": "FrontEnd",
+                "CIDR": "10.0.1.0/24"
+            }
+        },
+        "svcFabSettings": {
+            "tcpGatewayPort": "19000",
+            "httpGatewayPort": "19080",
+            "reverseProxyPort": "19008",
+            "clusterPorts" : "1025-1027",
+            "applicationStartPort": "20000",
+            "applicationEndPort": "30000",
+            "ephemeralStartPort": "49152",
+            "ephemeralEndPort": "65534"
+        },
+        "publicIPName": "[concat(tolower(parameters('resourcePrefix')), 'public-ip')]",
+        "publicLBName": "[concat(tolower(parameters('resourcePrefix')), 'public-lb')]",
+        "frontEndAppPort1": 80,
+        "frontEndAppPort2": 443,
+        "ProbePort" : "[variables('frontEndAppPort1')]",
+        "servicefabricLBIP1": "10.0.1.4",
+        /* map sizing */
+        "sizeParameters" : {
+            "Dev (not for production)" : {
+                "storageAccountType": "Standard_LRS",
+                "WebHostingPlan": "Basic",
+                "InstanceCount": 1,
+                "databaseSKU": "Basic",
+                "serviceBusTier": "Basic",
+                "serviceFabricNodeCount": 3,
+                "jumpboxVMSize": "Standard_A1",
+                "loadbalancedVMSize": "Standard_A1",
+                "loabalancedVMCount": 1,
+                 "svcfab": {
+                    "nodeSize" : "Standard_A1",
+                    "durabilityLevel" :"Bronze",
+                    "reliabilityLevel" : "Bronze",
+                    "nodeInstanceCount" : 3
+                 }
+            },
+            "Small" : {
+                "storageAccountType": "Standard_ZRS",
+                "WebHostingPlan": "Shared",
+                "InstanceCount": 1,
+                "databaseSKU": "Basic",
+                "serviceBusTier": "Basic",
+                "serviceFabricNodeCount": 5,
+                "jumpboxVMSize": "Standard_A1_v2",
+                "loadbalancedVMSize": "Standard_A1_v2",
+                "loabalancedVMCount": 2,
+                 "svcfab": {
+                    "nodeSize" : "Standard_A1_v2",
+                    "durabilityLevel" :"Bronze",
+                    "reliabilityLevel" : "Silver",
+                    "nodeInstanceCount" : 5
+                 }
+            },
+            "Medium" : {
+                "storageAccountType": "Standard_GRS",
+                "WebHostingPlan": "Standard S1",
+                "InstanceCount": 2,
+                "databaseSKU": "Standard S1",
+                "serviceBusTier": "Standard",
+                "serviceFabricNodeCount": 7,
+                "jumpboxVMSize": "Standard_D2_v2",
+                "loadbalancedVMSize": "Standard_A2_v2",
+                "loabalancedVMCount": 3,
+                 "svcfab": {
+                    "nodeSize" : "Standard_A1",
+                    "durabilityLevel" :"Gold",
+                    "reliabilityLevel" : "Silver",
+                    "nodeInstanceCount" : 5
+                 }
+            },
+            "Large" : {
+                "storageAccountType": "Standard_RAGRS",
+                "WebHostingPlan": "Premium P1",
+                "InstanceCount": 3,
+                "databaseSKU": "Premium P2",
+                "serviceBusTier": "Standard",
+                "serviceFabricNodeCount": 10,
+                "jumpboxVMSize": "Standard_D2_v2",
+                "loadbalancedVMSize": "Standard_D2_v2",
+                "loabalancedVMCount": 4,
+                 "svcfab": {
+                    "nodeSize" : "Standard_D4_v2",
+                    "durabilityLevel" :"Gold",
+                    "reliabilityLevel" : "Gold",
+                    "nodeInstanceCount" : 7
+                 }
+            }
+        },
+        "NetworkProviderAPI" : "2016-09-01"
+    },
+    "resources": [ 
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "Storage", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('StorageTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "storageAccountName": { "value": "[variables('StorageAccountName')]" },
+                    "storageAccountType": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['storageAccountType']]" }
+                } 
+            } 
+        },
+        /* set up the VNet and a single subnet */ 
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "vnetTemplate", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('LoadBalancerTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": {
+                    "vNetSettings": { "value": "[variables('vNetSettings')]" },
+                    "svcFabSettings": { "value": "[variables('svcFabSettings')]" },
+                    "frontEndAppPort1": { "value": "[variables('frontEndAppPort1')]" },
+                    "frontEndAppPort2": { "value": "[variables('frontEndAppPort1')]" }
+                } 
+            } 
+        },
+        /* create a public IP address for one of public load balancer */
+        {
+            "apiVersion": "[variables('NetworkProviderAPI')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "publicIP",
+            "location": "[resourceGroup().location]",
+            "properties": {
+              "publicIPAllocationMethod": "Static",
+              "dnsSettings": {
+                "domainNameLabel": "[variables('publicIPName')]"
+              }
+            }
+        },
+        /* set up public load balancer */ 
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "PublicLB", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('VNetTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "loadbalancerName" : { "value": "[variables('publicLBName')]" },
+                    "LoadBalancerIPConfig": { 
+                        "value": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses','publicIP')]"
+                            }
+                        }
+                    },
+                    "AppPort1": {
+                        "value": {
+                            "name": "httpGateway",
+                            "frontendPort": "[variables('svcFabSettings')['httpGatewayPort']]",
+                            "backendPort": "[variables('svcFabSettings')['httpGatewayPort']]"
+                        }
+                    },
+                    "AppPort2": {
+                        "value": {
+                            "name": "tcpGateway",
+                            "frontendPort": "[variables('svcFabSettings')['tcpGatewayPort']]",
+                            "backendPort": "[variables('svcFabSettings')['tcpGatewayPort']]"
+                        }
+                    },
+                    "ProbePort": { "value": "[variables('svcFabSettings')['httpGatewayPort']]" }
+
+                } 
+            } 
+        },
+        /* set up private load balancer */ 
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "Private", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('VNetTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "loadbalancerName" : { "value": "[variables('publicLBName')]" },
+                    "LoadBalancerIPConfig": { 
+                        "value": {  
+                            "subnet": {
+                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
+                            },
+                            "privateIPAddress": "",
+                            "privateIPAllocationMethod": "Static"
+                        }
+                    },
+                    "AppPort1": {
+                        "value": {
+                            "name": "HTTP",
+                            "frontendPort": "[variables('frontEndAppPort1')]",
+                            "backendPort": "[variables('frontEndAppPort1')]"
+                        }
+                    },
+                    "AppPort2": {
+                        "value": {
+                            "name": "HTTPS",
+                            "frontendPort": "[variables('frontEndAppPort2')]",
+                            "backendPort": "[variables('frontEndAppPort2')]"
+                        }
+                    },
+                    "ProbePort": { "value": "[variables('ProbePort')]" }
+                } 
+            } 
+        }
+    ],
+    "outputs": {
+    }
+}
