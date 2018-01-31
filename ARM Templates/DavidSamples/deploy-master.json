@@ -133,7 +133,7 @@
                         "InstanceCount": 3
                     },
                     {
-                        "Name" : "AooNode2", 
+                        "Name" : "AppNode2", 
                         "nodeSize" : "Standard_A1",
                         "IsPrimary": false,
                         "InstanceCount": 3
