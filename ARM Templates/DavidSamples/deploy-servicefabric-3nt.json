@@ -174,7 +174,7 @@
     /* outputs: 
     */
     "outputs": {
-        "ClusterEndpoint" : {
+        "clusterEndpoint" : {
             "type" : "string",
             "value": "[reference(variables('clusterName')).clusterEndpoint]"
         }

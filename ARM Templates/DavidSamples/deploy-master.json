@@ -423,7 +423,7 @@
                     },
                     "svcfabSettings": { 
                         "value": {
-                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.ClusterEndpoint.value]",
+                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.clusterEndpoint.value]",
                             "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][0]['Name']]",
                             "dataPath": "D:\\\\SvcFab",
                             "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
@@ -469,7 +469,7 @@
                     },
                     "svcfabSettings": { 
                         "value": {
-                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.ClusterEndpoint.value]",
+                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.clusterEndpoint.value]",
                             "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['Name']]",
                             "dataPath": "D:\\\\SvcFab",
                             "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
@@ -520,7 +520,7 @@
                     },
                     "svcfabSettings": { 
                         "value": {
-                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.ClusterEndpoint.value]",
+                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.clusterEndpoint.value]",
                             "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['Name']]",
                             "dataPath": "D:\\\\SvcFab",
                             "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
