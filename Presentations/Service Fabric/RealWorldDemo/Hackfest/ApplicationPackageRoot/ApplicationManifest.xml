@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="HackfestType" ApplicationTypeVersion="1.0.0" xmlns="http://schemas.microsoft.com/2011/01/fabric">
+<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="HackfestType" ApplicationTypeVersion="1.0.1" xmlns="http://schemas.microsoft.com/2011/01/fabric">
   <Parameters>
     <Parameter Name="APIBackEnd_InstanceCount" DefaultValue="-1" />
     <Parameter Name="WebFrontEnd_InstanceCount" DefaultValue="-1" />
@@ -10,11 +10,11 @@
        should match the Name and Version attributes of the ServiceManifest element defined in the 
        ServiceManifest.xml file. -->
   <ServiceManifestImport>
-    <ServiceManifestRef ServiceManifestName="APIBackEndPkg" ServiceManifestVersion="1.0.0" />
+    <ServiceManifestRef ServiceManifestName="APIBackEndPkg" ServiceManifestVersion="1.0.1" />
     <ConfigOverrides />
   </ServiceManifestImport>
   <ServiceManifestImport>
-    <ServiceManifestRef ServiceManifestName="WebFrontEndPkg" ServiceManifestVersion="1.0.0" />
+    <ServiceManifestRef ServiceManifestName="WebFrontEndPkg" ServiceManifestVersion="1.0.1" />
     <ConfigOverrides />
     <Policies>
       <EndpointBindingPolicy EndpointRef="SecureServiceEndpoint" CertificateRef="FECert" />
@@ -40,6 +40,6 @@
     </Service>
   </DefaultServices>
   <Certificates>
-    <EndpointCertificate X509StoreName="MY" X509FindValue="59 df 28 92 07 a3 03 c6 94 ae 01 c0 e4 a8 4b 94 da b3 05 bc" Name="FECert" />
+    <EndpointCertificate X509StoreName="MY" X509FindValue="34 2f 78 96 5d 01 65 02 8a 2b ad f3 f2 ba 8c 4e 7e 95 85 2a" Name="FECert" />
   </Certificates>
 </ApplicationManifest>

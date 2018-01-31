@@ -81,11 +81,13 @@
     },
     "variables": {
         "deploymentAPI" : "2015-01-01",
+        "NetworkProviderAPI" : "2016-09-01",
         "StorageAccountName": "[parameters('resourcePrefix')]",
         "storageDeploymentName" : "DefaultStorageAccount",
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
         "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
         "LoadBalancerTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-loadbalancer.json'), parameters('templateSASToken'))]",
+        "vmssTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-VMSS.json'), parameters('templateSASToken'))]",
         "vNetSettings": { 
             "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
             "addressPrefix": "10.0.0.0/16",
@@ -117,74 +119,115 @@
         "sizeParameters" : {
             "Dev (not for production)" : {
                 "storageAccountType": "Standard_LRS",
-                "WebHostingPlan": "Basic",
-                "InstanceCount": 1,
-                "databaseSKU": "Basic",
-                "serviceBusTier": "Basic",
-                "serviceFabricNodeCount": 3,
-                "jumpboxVMSize": "Standard_A1",
-                "loadbalancedVMSize": "Standard_A1",
-                "loabalancedVMCount": 1,
                  "svcfab": {
-                    "nodeSize" : "Standard_A1",
                     "durabilityLevel" :"Bronze",
                     "reliabilityLevel" : "Bronze",
                     "nodeInstanceCount" : 3
-                 }
+                 },
+                 "VMSSSettings" :  [ /* expects 3 */
+                    {
+                        "Name" : "AppNode1", 
+                        "nodeSize" : "Standard_A1",
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "AooNode2", 
+                        "nodeSize" : "Standard_A1",
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "Primary", 
+                        "nodeSize" : "Standard_A1",
+                        "IsPrimary": true,
+                        "InstanceCount": 3
+                    }
+                ]
             },
             "Small" : {
                 "storageAccountType": "Standard_ZRS",
-                "WebHostingPlan": "Shared",
-                "InstanceCount": 1,
-                "databaseSKU": "Basic",
-                "serviceBusTier": "Basic",
-                "serviceFabricNodeCount": 5,
-                "jumpboxVMSize": "Standard_A1_v2",
-                "loadbalancedVMSize": "Standard_A1_v2",
-                "loabalancedVMCount": 2,
                  "svcfab": {
                     "nodeSize" : "Standard_A1_v2",
                     "durabilityLevel" :"Bronze",
                     "reliabilityLevel" : "Silver",
-                    "nodeInstanceCount" : 5
-                 }
+                 },
+                 "VMSSSettings" :  [ /* expects 3 */
+                    {
+                        "Name" : "NodeType1", 
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "NodeType2", 
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "Primary", 
+                        "IsPrimary": true,
+                        "InstanceCount": 3
+                    }
+                ]
             },
             "Medium" : {
                 "storageAccountType": "Standard_GRS",
-                "WebHostingPlan": "Standard S1",
-                "InstanceCount": 2,
-                "databaseSKU": "Standard S1",
-                "serviceBusTier": "Standard",
-                "serviceFabricNodeCount": 7,
-                "jumpboxVMSize": "Standard_D2_v2",
-                "loadbalancedVMSize": "Standard_A2_v2",
-                "loabalancedVMCount": 3,
                  "svcfab": {
                     "nodeSize" : "Standard_A1",
                     "durabilityLevel" :"Gold",
-                    "reliabilityLevel" : "Silver",
-                    "nodeInstanceCount" : 5
-                 }
+                    "reliabilityLevel" : "Silver"
+                 },
+                 "VMSSSettings" :  [ /* expects 3 */
+                    {
+                        "Name" : "NodeType1", 
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "NodeType2", 
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "Primary", 
+                        "IsPrimary": true,
+                        "InstanceCount": 3
+                    }
+                ]
             },
             "Large" : {
                 "storageAccountType": "Standard_RAGRS",
-                "WebHostingPlan": "Premium P1",
-                "InstanceCount": 3,
-                "databaseSKU": "Premium P2",
-                "serviceBusTier": "Standard",
-                "serviceFabricNodeCount": 10,
-                "jumpboxVMSize": "Standard_D2_v2",
-                "loadbalancedVMSize": "Standard_D2_v2",
-                "loabalancedVMCount": 4,
                  "svcfab": {
                     "nodeSize" : "Standard_D4_v2",
                     "durabilityLevel" :"Gold",
-                    "reliabilityLevel" : "Gold",
-                    "nodeInstanceCount" : 7
-                 }
+                    "reliabilityLevel" : "Gold"
+                 },
+                 "VMSSSettings" :  [ /* expects 3 */
+                    {
+                        "Name" : "NodeType1", 
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "NodeType2", 
+                        "IsPrimary": false,
+                        "InstanceCount": 3
+                    },
+                    {
+                        "Name" : "Primary", 
+                        "IsPrimary": true,
+                        "InstanceCount": 3
+                    }
+                ]
             }
         },
-        "NetworkProviderAPI" : "2016-09-01"
+        /* cluster node type OS image */
+        "nodeImageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter",
+            "version": "latest"
+        }
     },
     "resources": [ 
         { 
@@ -277,7 +320,7 @@
         /* set up private load balancer */ 
         { 
             "type": "Microsoft.Resources/deployments", 
-            "name": "Private", 
+            "name": "PrivateLoadBalancer", 
             "apiVersion": "[variables('deploymentAPI')]", 
             "properties": { 
                 "mode": "Incremental", 
@@ -315,10 +358,36 @@
             } 
         },
         /* define the service fabric cluster */
+        { 
+            "type": "Microsoft.Resources/deployments", 
+            "name": "servicefabricDeployment", 
+            "apiVersion": "[variables('deploymentAPI')]", 
+            "dependsOn": [
+                "vnetTemplate"
+            ],
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('svcfabTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "resourcePrefix": { "value": "[parameters('resourcePrefix')]" },
+                    "svcFabSettings": { "value": "[variables('svcFabSettings')]"},
+                    "managementEndpoint": { "value" : "[variables('servicefabricLBIP1')]" },
+                    "nodeDetails": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings']]" },
+                    "storageAccountName" : { "value" : "[variables('StorageAccountName')]" }
+                } 
+            } 
+        },
+        /* define the first application node of the service fabric cluster */
         {
             "type": "Microsoft.Resources/deployments", 
-            "name": "[variables('svcfabDeploymentName')]", 
+            "name": "[concat(variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['Name'], '-vmss')]", 
             "apiVersion": "[variables('deploymentAPI')]",
+            "dependsOn": [
+                "servicefabricDeployment"
+            ],
             "properties": { 
                 "mode": "Incremental", 
                 "templateLink": {
@@ -326,20 +395,20 @@
                     "contentVersion": "1.0.0.0"
                 }, 
                 "parameters": { 
-                    "vmssName": { "value": "[variables('vmssName')]" },
-                    "nodeSize": { "value": "[parameters('nodeSize')]" },
+                    "vmssName": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['Name']]" },
+                    "nodeSize": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['nodeSize']]" },
                     "adminUser": { "value": "[parameters('adminUser')]" },
                     "adminPassword": { "value": "[parameters('adminPassword')]" },
                     "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
-                    "nodeInstanceCount": { "value": "[parameters('nodeInstanceCount')]" },
+                    "nodeInstanceCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['InstanceCount']]" },
                     "ipConfig": { 
                         "value": {
                             "subnet": {
-                                "id": "[parameters('subnetResourceId')]"
+                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
                             },
                             "loadBalancerBackendAddressPools": [
                                 {
-                                    "id": "[variables('loadbalancer')['PoolID']]"
+                                    "id": "[reference('PrivateLoadBalancer').outputs.loadbalancerPools.value.BackEndPoolId]"
                                 }
                             ]
                         }
@@ -353,15 +422,117 @@
                     },
                     "svcfabSettings": { 
                         "value": {
-                            "clusterEndpoint": "[reference(variables('clusterName')).clusterEndpoint]",
-                            "nodeTypeRef": "[variables('vmssName')]",
+                            "clusterEndpoint": "[variables('servicefabricLBIP1')]",
+                            "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['Name']]",
                             "dataPath": "D:\\\\SvcFab",
-                            "durabilityLevel": "[parameters('durabilityLevel')]"
+                            "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
                         }
                     }
                 } 
             } 
-        }
+        },
+        /* define the second application node of the service fabric cluster */
+        {
+            "type": "Microsoft.Resources/deployments", 
+            "name": "[concat(variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['Name'], '-vmss')]", 
+            "apiVersion": "[variables('deploymentAPI')]",
+            "dependsOn": [
+                "servicefabricDeployment"
+            ],
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('vmssTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "vmssName": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['Name']]" },
+                    "nodeSize": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['nodeSize']]" },
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "[parameters('adminPassword')]" },
+                    "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
+                    "nodeInstanceCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['InstanceCount']]" },
+                    "ipConfig": { 
+                        "value": {
+                            "subnet": {
+                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[reference('PrivateLoadBalancer').outputs.loadbalancerPools.value.BackEndPoolId]"
+                                }
+                            ]
+                        }
+                    },
+                    "durabilityLevel": { "value": "[variables('durabilityLevel')]" },
+                    "svcfabProtectedSettings": { 
+                        "value": {
+                            "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
+                            "StorageAccountKey2": "[reference(variables('storageDeploymentName')).outputs.properties.value.secondaryKey]"
+                        }
+                    },
+                    "svcfabSettings": { 
+                        "value": {
+                            "clusterEndpoint": "[variables('servicefabricLBIP1')]",
+                            "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['Name']]",
+                            "dataPath": "D:\\\\SvcFab",
+                            "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
+                        }
+                    }
+                } 
+            } 
+        },
+        /* define the primary node of the service fabric cluster */
+        {
+            "type": "Microsoft.Resources/deployments", 
+            "name": "[concat(variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][3]['Name'], '-vmss')]", 
+            "apiVersion": "[variables('deploymentAPI')]",
+            "dependsOn": [
+                "servicefabricDeployment"
+            ],
+            "properties": { 
+                "mode": "Incremental", 
+                "templateLink": {
+                    "uri": "[variables('vmssTemplateURI')]",
+                    "contentVersion": "1.0.0.0"
+                }, 
+                "parameters": { 
+                    "vmssName": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][3]['Name']]" },
+                    "nodeSize": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][3]['nodeSize']]" },
+                    "adminUser": { "value": "[parameters('adminUser')]" },
+                    "adminPassword": { "value": "[parameters('adminPassword')]" },
+                    "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
+                    "nodeInstanceCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][3]['InstanceCount']]" },
+                    "ipConfig": { 
+                        "value": {
+                            "subnet": {
+                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[reference('PrivateLoadBalancer').outputs.loadbalancerPools.value.BackEndPoolId]"
+                                }
+                            ]
+                        }
+                    },
+                    "durabilityLevel": { "value": "[variables('durabilityLevel')]" },
+                    "svcfabProtectedSettings": { 
+                        "value": {
+                            "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
+                            "StorageAccountKey2": "[reference(variables('storageDeploymentName')).outputs.properties.value.secondaryKey]"
+                        }
+                    },
+                    "svcfabSettings": { 
+                        "value": {
+                            "clusterEndpoint": "[variables('servicefabricLBIP1')]",
+                            "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][3]['Name']]",
+                            "dataPath": "D:\\\\SvcFab",
+                            "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
+                        }
+                    }
+                } 
+            } 
+        }        
     ],
     "outputs": {
     }
