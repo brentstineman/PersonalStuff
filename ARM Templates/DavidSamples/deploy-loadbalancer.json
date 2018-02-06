@@ -36,6 +36,17 @@
                 "description": "Name of the load balancer."
             }
         },
+        "sku" : {
+            "type" : "string",
+            "defaultValue": "Basic", 
+            "allowedValues": [ 
+                "Basic", 
+                "Standard"
+            ], 
+            "metadata": {
+                "description" : "LB SKU, basic or standar"
+            }
+        },
         "LoadBalancerIPConfig": {
             "type": "object",
             "metadata": {
@@ -62,7 +73,7 @@
         }
     },
     "variables": {
-        "NetworkProviderAPI" : "2016-09-01",
+        "NetworkProviderAPI" : "2017-08-01",
         "loadbalancerName": "[tolower(parameters('loadbalancerName'))]",
         "loadbalancerId": "[resourceId('Microsoft.Network/loadBalancers',variables('loadbalancerName'))]",
         "loadbalancerProbeName": "[concat('AppPortProbe-', parameters('ProbePort'))]",
@@ -78,6 +89,10 @@
             "name": "[variables('loadbalancerName')]",
             "apiVersion": "[variables('NetworkProviderAPI')]",
             "location": "[resourceGroup().location]",
+            "sku":
+            {
+                "name": "[parameters('sku')]"
+            },
             "properties": {
                 "frontendIPConfigurations": [ {
                     "name": "ApplicationLoadBalancer",

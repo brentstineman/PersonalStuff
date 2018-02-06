@@ -59,7 +59,7 @@
         }
     },
     "variables": {
-        "vnetResourceAPI": "2016-09-01",
+        "vnetResourceAPI": "2017-08-01",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('vNetSettings')['Name'])]",
         "vnetNSGName" : "[concat('nsg', parameters('vNetSettings')['subnetFrontEnd']['Name'])]",
         "subnetFrontEndRef": "[concat(variables('vnetID'),'/subnets/', parameters('vNetSettings')['subnetFrontEnd']['Name'])]"
