@@ -139,7 +139,7 @@
         "privateLBName": "[concat(tolower(parameters('resourcePrefix')), 'private-lb')]",
         "frontEndAppPort1": "[variables('svcFabSettings')['httpGatewayPort']]",
         "frontEndAppPort2": "[variables('svcFabSettings')['tcpGatewayPort']]",
-        "ProbePort" : "[variables('frontEndAppPort1')]",
+        "ProbePort" : 19080,
         "servicefabricLBIP1": "[parameters('privateLBFrontEndIPAddr')]",
         /* map sizing */
         "sizeParameters" : {
@@ -154,7 +154,7 @@
                     {
                         "Name" : "AppNode1", 
                         "nodeSize" : "Standard_A1",
-                        "IsPrimary": false,
+                        "IsPrimary": true,
                         "InstanceCount": 3
                     }
                 ]
@@ -169,7 +169,7 @@
                  "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
-                        "IsPrimary": false,
+                        "IsPrimary": true,
                         "InstanceCount": 3
                     }
                 ]
@@ -184,7 +184,7 @@
                  "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
-                        "IsPrimary": false,
+                        "IsPrimary": true,
                         "InstanceCount": 3
                     }
                 ]
@@ -199,7 +199,7 @@
                  "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
-                        "IsPrimary": false,
+                        "IsPrimary": true,
                         "InstanceCount": 3
                     }
                 ]

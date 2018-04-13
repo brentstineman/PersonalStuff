@@ -150,7 +150,7 @@
                       ]
                     }
                 ],
-                "managementEndpoint": "[concat('http://', parameters('managementEndpoint'), ':', parameters('svcFabSettings')['httpGatewayPort'])]",                
+                "managementEndpoint": "[concat('https://', parameters('managementEndpoint'), ':', parameters('svcFabSettings')['httpGatewayPort'])]",                
                 "nodeTypes": [
                     {
                         "name": "[parameters('nodeDetails')[0]['Name']]",
