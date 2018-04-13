@@ -64,6 +64,43 @@
                 "description": "The password of the admin user"
             }
         },
+        "vnetSubnetResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "The Azure Resource ID of the subnet that we are deploying to"
+            }
+        },
+        "privateLBFrontEndIPAddr": {
+            "type": "string",
+            "metadata": {
+                "description": "The private IP of the front end load balancer"
+            }
+        },
+        "sourceVaultRef": {
+            "type": "string",
+            "metadata": {
+              "description": "The Azure Resource Id of the vault that contains the certificates used to secure the cluster"
+            }
+        },
+        "clusterCertificateStorevalue": {
+            "type": "string",
+            "defaultValue": "My",
+            "metadata": {
+              "description": "The certificate store to be used to store the certificate on the node instance"
+            }
+        },
+        "clusterCertificateUrlValue": {
+            "type": "string",
+            "metadata": {
+              "description": "The URL of the certificate in the Key Vault to be used by the Service Fabric extension to secure node communications"
+            }
+        },
+        "clusterCertificateThumbprint": {
+            "type": "string",
+            "metadata": {
+              "description": "The thumbprint of the certification to be used for cluster authentication and the management endpoints (should be thumbprint of cert referred to by URL)"
+            }
+        },
         "templateBaseURL": {
             "type": "string",
             "defaultValue": "[deployment().properties.templateLink.uri]",
@@ -81,22 +118,12 @@
     },
     "variables": {
         "deploymentAPI" : "2015-01-01",
-        "NetworkProviderAPI" : "2016-09-01",
         "StorageAccountName": "[parameters('resourcePrefix')]",
         "storageDeploymentName" : "DefaultStorageAccount",
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
-        "VNetTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-vnet.json'), parameters('templateSASToken'))]",
         "LoadBalancerTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-loadbalancer.json'), parameters('templateSASToken'))]",
-        "svcfabTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-3nt.json'), parameters('templateSASToken'))]",
+        "svcfabTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-1nt-secure.json'), parameters('templateSASToken'))]",
         "vmssTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-servicefabric-VMSS.json'), parameters('templateSASToken'))]",
-        "vNetSettings": { 
-            "Name": "[concat(parameters('resourcePrefix'), '-vnet')]",
-            "addressPrefix": "10.0.0.0/16",
-            "subnetFrontEnd" : {
-                "Name": "FrontEnd",
-                "CIDR": "10.0.1.0/24"
-            }
-        },
         "svcfabDeploymentName" : "[concat(parameters('resourcePrefix'), '-svcfab')]",
         "svcFabSettings": {
             "tcpGatewayPort": "19000",
@@ -109,13 +136,11 @@
             "ephemeralEndPort": "65534"
         },
         "durabilityLevel" : "Bronze",
-        "publicIPName": "[concat(tolower(parameters('resourcePrefix')), 'public-ip')]",
-        "publicLBName": "[concat(tolower(parameters('resourcePrefix')), 'public-lb')]",
         "privateLBName": "[concat(tolower(parameters('resourcePrefix')), 'private-lb')]",
-        "frontEndAppPort1": 80,
-        "frontEndAppPort2": 443,
+        "frontEndAppPort1": "[variables('svcFabSettings')['httpGatewayPort']]",
+        "frontEndAppPort2": "[variables('svcFabSettings')['tcpGatewayPort']]",
         "ProbePort" : "[variables('frontEndAppPort1')]",
-        "servicefabricLBIP1": "10.0.1.4",
+        "servicefabricLBIP1": "[parameters('privateLBFrontEndIPAddr')]",
         /* map sizing */
         "sizeParameters" : {
             "Dev (not for production)" : {
@@ -131,18 +156,6 @@
                         "nodeSize" : "Standard_A1",
                         "IsPrimary": false,
                         "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "AppNode2", 
-                        "nodeSize" : "Standard_A1",
-                        "IsPrimary": false,
-                        "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "PrimNode", 
-                        "nodeSize" : "Standard_A1",
-                        "IsPrimary": true,
-                        "InstanceCount": 3
                     }
                 ]
             },
@@ -153,20 +166,10 @@
                     "durabilityLevel" :"Bronze",
                     "reliabilityLevel" : "Silver"
                  },
-                 "VMSSSettings" :  [ /* expects 3 */
+                 "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
                         "IsPrimary": false,
-                        "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "NodeType2", 
-                        "IsPrimary": false,
-                        "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "Primary", 
-                        "IsPrimary": true,
                         "InstanceCount": 3
                     }
                 ]
@@ -178,20 +181,10 @@
                     "durabilityLevel" :"Gold",
                     "reliabilityLevel" : "Silver"
                  },
-                 "VMSSSettings" :  [ /* expects 3 */
+                 "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
                         "IsPrimary": false,
-                        "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "NodeType2", 
-                        "IsPrimary": false,
-                        "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "Primary", 
-                        "IsPrimary": true,
                         "InstanceCount": 3
                     }
                 ]
@@ -203,20 +196,10 @@
                     "durabilityLevel" :"Gold",
                     "reliabilityLevel" : "Gold"
                  },
-                 "VMSSSettings" :  [ /* expects 3 */
+                 "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
                         "IsPrimary": false,
-                        "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "NodeType2", 
-                        "IsPrimary": false,
-                        "InstanceCount": 3
-                    },
-                    {
-                        "Name" : "Primary", 
-                        "IsPrimary": true,
                         "InstanceCount": 3
                     }
                 ]
@@ -230,8 +213,9 @@
             "version": "latest"
         }
     },
-    "resources": [ 
+    "resources": [
         { 
+            /* used by Service Fabric for diagnostics */
             "type": "Microsoft.Resources/deployments", 
             "name": "[variables('storageDeploymentName')]", 
             "apiVersion": "[variables('deploymentAPI')]", 
@@ -244,77 +228,6 @@
                 "parameters": { 
                     "storageAccountName": { "value": "[variables('StorageAccountName')]" },
                     "storageAccountType": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['storageAccountType']]" }
-                } 
-            } 
-        },
-        /* set up the VNet and a single subnet */ 
-        { 
-            "type": "Microsoft.Resources/deployments", 
-            "name": "vnetTemplate", 
-            "apiVersion": "[variables('deploymentAPI')]", 
-            "properties": { 
-                "mode": "Incremental", 
-                "templateLink": {
-                    "uri": "[variables('VNetTemplateURI')]",
-                    "contentVersion": "1.0.0.0"
-                }, 
-                "parameters": {
-                    "vNetSettings": { "value": "[variables('vNetSettings')]" },
-                    "svcFabSettings": { "value": "[variables('svcFabSettings')]" },
-                    "frontEndAppPort1": { "value": "[variables('frontEndAppPort1')]" },
-                    "frontEndAppPort2": { "value": "[variables('frontEndAppPort2')]" }
-                } 
-            } 
-        },
-        /* create a public IP address for one of public load balancer */
-        {
-            "apiVersion": "[variables('NetworkProviderAPI')]",
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "publicIP",
-            "location": "[resourceGroup().location]",
-            "properties": {
-              "publicIPAllocationMethod": "Static",
-              "dnsSettings": {
-                "domainNameLabel": "[variables('publicIPName')]"
-              }
-            }
-        },
-        /* set up public load balancer */ 
-        { 
-            "type": "Microsoft.Resources/deployments", 
-            "name": "PublicLB", 
-            "apiVersion": "[variables('deploymentAPI')]", 
-            "properties": { 
-                "mode": "Incremental", 
-                "templateLink": {
-                    "uri": "[variables('LoadBalancerTemplateURI')]",
-                    "contentVersion": "1.0.0.0"
-                }, 
-                "parameters": { 
-                    "loadbalancerName" : { "value": "[variables('publicLBName')]" },
-                    "LoadBalancerIPConfig": { 
-                        "value": {
-                            "publicIPAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses','publicIP')]"
-                            }
-                        }
-                    },
-                    "AppPort1": {
-                        "value": {
-                            "name": "httpGateway",
-                            "frontendPort": "[variables('svcFabSettings')['httpGatewayPort']]",
-                            "backendPort": "[variables('svcFabSettings')['httpGatewayPort']]"
-                        }
-                    },
-                    "AppPort2": {
-                        "value": {
-                            "name": "tcpGateway",
-                            "frontendPort": "[variables('svcFabSettings')['tcpGatewayPort']]",
-                            "backendPort": "[variables('svcFabSettings')['tcpGatewayPort']]"
-                        }
-                    },
-                    "ProbePort": { "value": 19080 } /* having an issue with type conversion, will work on later */
-
                 } 
             } 
         },
@@ -334,7 +247,7 @@
                     "LoadBalancerIPConfig": { 
                         "value": {  
                             "subnet": {
-                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
+                                "id": "[parameters('vnetSubnetResourceId')]"
                             },
                             "privateIPAddress": "[variables('servicefabricLBIP1')]",
                             "privateIPAllocationMethod": "Static"
@@ -363,9 +276,6 @@
             "type": "Microsoft.Resources/deployments", 
             "name": "[variables('svcfabDeploymentName')]", 
             "apiVersion": "[variables('deploymentAPI')]", 
-            "dependsOn": [
-                "vnetTemplate"
-            ],
             "properties": { 
                 "mode": "Incremental", 
                 "templateLink": {
@@ -377,11 +287,13 @@
                     "svcFabSettings": { "value": "[variables('svcFabSettings')]"},
                     "managementEndpoint": { "value" : "[variables('servicefabricLBIP1')]" },
                     "nodeDetails": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings']]" },
-                    "storageAccountName" : { "value" : "[variables('StorageAccountName')]" }
+                    "storageAccountName" : { "value" : "[variables('StorageAccountName')]" },
+                    "clusterCertificateThumbprint": { "value": "[parameters('clusterCertificateThumbprint')]" },
+                    "clusterCertificateStorevalue": { "value": "[parameters('clusterCertificateStorevalue')]" }
                 } 
             } 
         },
-        /* define the first application node of the service fabric cluster (uses public LB) */
+        /* define the primary node of the service fabric cluster (uses private LB) */
         {
             "type": "Microsoft.Resources/deployments", 
             "name": "[concat(variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][0]['Name'], '-vmss')]", 
@@ -405,104 +317,7 @@
                     "ipConfig": { 
                         "value": {
                             "subnet": {
-                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
-                            },
-                            "loadBalancerBackendAddressPools": [
-                                {
-                                    "id": "[reference('PublicLB').outputs.loadbalancerPools.value.BackEndPoolId]"
-                                }
-                            ]
-                        }
-                    },
-                    "durabilityLevel": { "value": "[variables('durabilityLevel')]" },
-                    "svcfabProtectedSettings": { 
-                        "value": {
-                            "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
-                            "StorageAccountKey2": "[reference(variables('storageDeploymentName')).outputs.properties.value.secondaryKey]"
-                        }
-                    },
-                    "svcfabSettings": { 
-                        "value": {
-                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.clusterEndpoint.value]",
-                            "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][0]['Name']]",
-                            "dataPath": "D:\\\\SvcFab",
-                            "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
-                        }
-                    }
-                } 
-            } 
-        },
-        /* define the second application node of the service fabric cluster (no associated load balancer)*/
-        {
-            "type": "Microsoft.Resources/deployments", 
-            "name": "[concat(variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['Name'], '-vmss')]", 
-            "apiVersion": "[variables('deploymentAPI')]",
-            "dependsOn": [
-                "[variables('svcfabDeploymentName')]"
-            ],
-            "properties": { 
-                "mode": "Incremental", 
-                "templateLink": {
-                    "uri": "[variables('vmssTemplateURI')]",
-                    "contentVersion": "1.0.0.0"
-                }, 
-                "parameters": { 
-                    "vmssName": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['Name']]" },
-                    "nodeSize": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['nodeSize']]" },
-                    "adminUser": { "value": "[parameters('adminUser')]" },
-                    "adminPassword": { "value": "[parameters('adminPassword')]" },
-                    "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
-                    "nodeInstanceCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['InstanceCount']]" },
-                    "ipConfig": { 
-                        "value": {
-                            "subnet": {
-                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
-                            }
-                        }
-                    },
-                    "durabilityLevel": { "value": "[variables('durabilityLevel')]" },
-                    "svcfabProtectedSettings": { 
-                        "value": {
-                            "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
-                            "StorageAccountKey2": "[reference(variables('storageDeploymentName')).outputs.properties.value.secondaryKey]"
-                        }
-                    },
-                    "svcfabSettings": { 
-                        "value": {
-                            "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.clusterEndpoint.value]",
-                            "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][1]['Name']]",
-                            "dataPath": "D:\\\\SvcFab",
-                            "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
-                        }
-                    }
-                } 
-            } 
-        },
-        /* define the primary node of the service fabric cluster (uses private LB) */
-        {
-            "type": "Microsoft.Resources/deployments", 
-            "name": "[concat(variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['Name'], '-vmss')]", 
-            "apiVersion": "[variables('deploymentAPI')]",
-            "dependsOn": [
-                "[variables('svcfabDeploymentName')]"
-            ],
-            "properties": { 
-                "mode": "Incremental", 
-                "templateLink": {
-                    "uri": "[variables('vmssTemplateURI')]",
-                    "contentVersion": "1.0.0.0"
-                }, 
-                "parameters": { 
-                    "vmssName": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['Name']]" },
-                    "nodeSize": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['nodeSize']]" },
-                    "adminUser": { "value": "[parameters('adminUser')]" },
-                    "adminPassword": { "value": "[parameters('adminPassword')]" },
-                    "nodeImageReference": { "value": "[variables('nodeImageReference')]" },
-                    "nodeInstanceCount": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['InstanceCount']]" },
-                    "ipConfig": { 
-                        "value": {
-                            "subnet": {
-                                "id": "[reference('vnetTemplate').outputs.subnetIDs.value.frontEnd]"
+                                "id": "[parameters('vnetSubnetResourceId')]"
                             },
                             "loadBalancerBackendAddressPools": [
                                 {
@@ -521,10 +336,29 @@
                     "svcfabSettings": { 
                         "value": {
                             "clusterEndpoint": "[reference(variables('svcfabDeploymentName')).outputs.clusterEndpoint.value]",
-                            "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][2]['Name']]",
+                            "nodeTypeRef": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings'][0]['Name']]",
                             "dataPath": "D:\\\\SvcFab",
-                            "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"
+                            "durabilityLevel": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]",
+                            "certificate": {
+                                "thumbprint": "[parameters('clusterCertificateThumbprint')]",
+                                "x509StoreName": "[parameters('clusterCertificateStoreValue')]"
+                            }
                         }
+                    },
+                    "osSecrets" : {
+                        "value" : [
+                            {
+                                "sourceVault": {
+                                  "id": "[parameters('sourceVaultRef')]"
+                                },
+                                "vaultCertificates": [
+                                  {
+                                    "certificateUrl": "[parameters('clusterCertificateUrlValue')]",
+                                    "certificateStore": "[parameters('clusterCertificateStorevalue')]"
+                                  }
+                                ]
+                            }
+                        ]
                     }
                 } 
             } 

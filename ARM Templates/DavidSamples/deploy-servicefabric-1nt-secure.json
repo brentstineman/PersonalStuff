@@ -1,0 +1,188 @@
+/*
+# Access granted under MIT Open Source License: https://en.wikipedia.org/wiki/MIT_License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, # and/or sell copies of the Software, 
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions 
+# of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+# Created by: Brent Stineman
+#
+# Description: This template will create a non-secure service fabric cluster with 3 node types. The expectation of this template is 
+# that the VNet that the cluster is being deployed too, necessary storage accounts, etc... have already been created outside of this 
+# template.  
+#
+# For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
+#
+# Modifications
+# 2018/01/30 : Initial publication
+#
+*/
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "resourcePrefix": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 15,
+            "metadata": {
+                "description": "The prefix to be used for the cluster and its associated resources."
+            }
+        },
+        "svcFabSettings": {
+            "type": "object",
+            "metadata": {
+                "description": "Ports to be used by the cluster."
+            }
+        },
+        "durabilityLevel": {
+            "type": "string",
+            "allowedValues": [
+                "Bronze",
+                "Silver",
+                "Gold",
+                "Platinum"
+            ],
+            "defaultValue": "Bronze",
+            "metadata": {
+                "description": "Durability level of the VM Scale Sets for all nodes"
+            }
+        },
+        "reliabilityLevel": {
+            "type": "string",
+            "allowedValues": [
+                "Bronze",
+                "Silver",
+                "Gold",
+                "Platinum"
+            ],
+            "defaultValue": "Bronze",
+            "metadata": {
+                "description": "Reliability level for all Service Fabric node types"
+            }
+        },
+        "managementEndpoint" : { 
+            "type" : "string", 
+            "metadata": {
+                "description": "The Domain or IP address for the management endpoint"
+            }
+        },
+        "nodeDetails" : { 
+            "type" : "array", 
+            "metadata": {
+                "description": "The details for the 3 node types"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the storage account to be used by the cluster for diagnostics. "
+            }            
+        },
+        "clusterProtectionLevel": {
+            "type": "string",
+            "allowedValues": [
+              "None",
+              "Sign",
+              "EncryptAndSign"
+            ],
+            "defaultValue": "EncryptAndSign",
+            "metadata": {
+              "description": "Protection level.Three values are allowed - EncryptAndSign, Sign, None. It is best to keep the default of EncryptAndSign, unless you have a need not to"
+            }
+          },
+          "clusterCertificateThumbprint": {
+            "type": "string",
+            "metadata": {
+              "description": "The thumbprint of the certification to be used for cluster authentication and the management endpoints (should be thumbprint of cert referred to by URL)"
+            }
+          },
+          "clusterCertificateStorevalue": {
+            "type": "string",
+            "defaultValue": "My",
+            "metadata": {
+              "description": "The certificate store to be used to store the certificate on the node instance"
+            }
+          }        
+    },
+    "variables": {
+        "deploymentAPI" : "2015-01-01",
+        "clusterName": "[concat(parameters('resourcePrefix'), '-svcfab')]"
+    },
+    "resources": [
+        /* service fabric cluster definition */    
+        {
+            "apiVersion": "2016-09-01",
+            "type": "Microsoft.ServiceFabric/clusters",
+            "name": "[variables('clusterName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "certificate": {
+                    "thumbprint": "[parameters('clusterCertificateThumbprint')]",
+                    "x509StoreName": "[parameters('clusterCertificateStoreValue')]"
+                },
+                "clientCertificateCommonNames": [ ],
+                "clientCertificateThumbprints": [ ],
+                "diagnosticsStorageAccountConfig": {
+                    "storageAccountName": "[parameters('storageAccountName')]",
+                    "protectedAccountKeyName": "StorageAccountKey1",
+                    "blobEndpoint": "[concat('https://',parameters('storageAccountName'),'.blob.core.windows.net/')]",
+                    "queueEndpoint": "[concat('https://',parameters('storageAccountName'),'.queue.core.windows.net/')]",
+                    "tableEndpoint": "[concat('https://',parameters('storageAccountName'),'.table.core.windows.net/')]"
+                },
+                "fabricSettings": [
+                    {
+                      "name": "Security",
+                      "parameters": [
+                        {
+                          "name": "ClusterProtectionLevel",
+                          "value": "[parameters('clusterProtectionLevel')]"
+                        }
+                      ]
+                    }
+                ],
+                "managementEndpoint": "[concat('http://', parameters('managementEndpoint'), ':', parameters('svcFabSettings')['httpGatewayPort'])]",                
+                "nodeTypes": [
+                    {
+                        "name": "[parameters('nodeDetails')[0]['Name']]",
+                        "applicationPorts": {
+                            "endPort": "[parameters('svcFabSettings')['applicationEndPort']]", 
+                            "startPort": "[parameters('svcFabSettings')['applicationStartPort']]"
+                        },
+                        "clientConnectionEndpointPort": "[parameters('svcFabSettings')['tcpGatewayPort']]",
+                        "durabilityLevel": "[parameters('durabilityLevel')]",
+                        "ephemeralPorts": {
+                            "endPort": "[parameters('svcFabSettings')['ephemeralEndPort']]",
+                            "startPort": "[parameters('svcFabSettings')['ephemeralStartPort']]"
+                        },
+                        "httpGatewayEndpointPort": "[parameters('svcFabSettings')['httpGatewayPort']]",
+                        "reverseProxyEndpointPort": "[parameters('svcFabSettings')['reverseProxyPort']]",            
+                        "isPrimary": "[parameters('nodeDetails')[0]['IsPrimary']]",
+                        "vmInstanceCount": "[parameters('nodeDetails')[0]['InstanceCount']]"
+                    }
+                ],
+                "provisioningState": "Default",
+                "reliabilityLevel": "[parameters('reliabilityLevel')]",
+                "vmImage": "Windows"
+            }
+        }
+    ],
+    /* outputs: 
+    */
+    "outputs": {
+        "clusterEndpoint" : {
+            "type" : "string",
+            "value": "[reference(variables('clusterName')).clusterEndpoint]"
+        }
+        
+    }
+}
