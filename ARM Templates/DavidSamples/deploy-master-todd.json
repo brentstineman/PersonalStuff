@@ -24,7 +24,7 @@
 # For more about these techniques, see: https://brentdacodemonkey.wordpress.com/2017/03/09/azure-resource-manager-template-tips-and-tricks/
 #
 # Modifications
-# 2017/04/19 : Initial publication
+# 2018/04/13 : Initial publication
 #
 */
 {
@@ -118,7 +118,7 @@
     },
     "variables": {
         "deploymentAPI" : "2015-01-01",
-        "StorageAccountName": "[parameters('resourcePrefix')]",
+        "StorageAccountName": "[concat(parameters('resourcePrefix'), 'store')]",
         "storageDeploymentName" : "DefaultStorageAccount",
         "StorageTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-storageAccount.json'), parameters('templateSASToken'))]",
         "LoadBalancerTemplateURI": "[concat(uri(parameters('templateBaseURL'), 'deploy-loadbalancer.json'), parameters('templateSASToken'))]",
@@ -135,7 +135,6 @@
             "ephemeralStartPort": "49152",
             "ephemeralEndPort": "65534"
         },
-        "durabilityLevel" : "Bronze",
         "privateLBName": "[concat(tolower(parameters('resourcePrefix')), 'private-lb')]",
         "frontEndAppPort1": "[variables('svcFabSettings')['httpGatewayPort']]",
         "frontEndAppPort2": "[variables('svcFabSettings')['tcpGatewayPort']]",
@@ -160,15 +159,15 @@
                 ]
             },
             "Small" : {
-                "storageAccountType": "Standard_ZRS",
+                "storageAccountType": "Standard_LRS",
                  "svcfab": {
-                    "nodeSize" : "Standard_A1_v2",
                     "durabilityLevel" :"Bronze",
-                    "reliabilityLevel" : "Silver"
+                    "reliabilityLevel" : "Bronze"
                  },
                  "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
+                        "nodeSize" : "Standard_A1_v2",
                         "IsPrimary": true,
                         "InstanceCount": 3
                     }
@@ -177,28 +176,28 @@
             "Medium" : {
                 "storageAccountType": "Standard_GRS",
                  "svcfab": {
-                    "nodeSize" : "Standard_A1",
-                    "durabilityLevel" :"Gold",
+                    "durabilityLevel" :"Silver",
                     "reliabilityLevel" : "Silver"
                  },
                  "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
+                        "nodeSize" : "Standard_D2_v2",
                         "IsPrimary": true,
-                        "InstanceCount": 3
+                        "InstanceCount": 5
                     }
                 ]
             },
             "Large" : {
                 "storageAccountType": "Standard_RAGRS",
                  "svcfab": {
-                    "nodeSize" : "Standard_D4_v2",
                     "durabilityLevel" :"Gold",
                     "reliabilityLevel" : "Gold"
                  },
                  "VMSSSettings" :  [ 
                     {
                         "Name" : "NodeType1", 
+                        "nodeSize" : "Standard_D4_v2",
                         "IsPrimary": true,
                         "InstanceCount": 3
                     }
@@ -326,7 +325,7 @@
                             ]
                         }
                     },
-                    "durabilityLevel": { "value": "[variables('durabilityLevel')]" },
+                    "durabilityLevel": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]" },
                     "svcfabProtectedSettings": { 
                         "value": {
                             "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",
