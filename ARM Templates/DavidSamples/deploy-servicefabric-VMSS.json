@@ -86,19 +86,6 @@
                 "description": "The IP configuration for the VMSS" 
             }
         },
-        "durabilityLevel": {
-            "type": "string",
-            "allowedValues": [
-                "Bronze",
-                "Silver",
-                "Gold",
-                "Platinum"
-            ],
-            "defaultValue": "Bronze",
-            "metadata": {
-                "description": "Durability level of the VM Scale Sets for all nodes"
-            }
-        },
         "svcfabProtectedSettings": { 
             "type": "object", 
             "metadata": { 
