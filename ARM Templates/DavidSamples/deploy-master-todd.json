@@ -284,6 +284,7 @@
                 "parameters": { 
                     "resourcePrefix": { "value": "[parameters('resourcePrefix')]" },
                     "svcFabSettings": { "value": "[variables('svcFabSettings')]"},
+                    "reliabilityLevel": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['reliabilityLevel']]"},
                     "managementEndpoint": { "value" : "[variables('servicefabricLBIP1')]" },
                     "nodeDetails": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings']]" },
                     "storageAccountName" : { "value" : "[variables('StorageAccountName')]" },
