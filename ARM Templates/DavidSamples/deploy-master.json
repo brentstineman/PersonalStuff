@@ -414,7 +414,6 @@
                             ]
                         }
                     },
-                    "durabilityLevel": { "value": "[variables('durabilityLevel')]" },
                     "svcfabProtectedSettings": { 
                         "value": {
                             "StorageAccountKey1": "[reference(variables('storageDeploymentName')).outputs.properties.value.primaryKey]",

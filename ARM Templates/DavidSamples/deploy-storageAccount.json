@@ -71,7 +71,7 @@
             "kind": "Storage",
             "sku": {
                 "name": "[parameters('storageAccountType')]",
-                "tier": "Standard LRS"
+                "tier": "Standard"
             },
             "properties": {
                 "encryption": { 
