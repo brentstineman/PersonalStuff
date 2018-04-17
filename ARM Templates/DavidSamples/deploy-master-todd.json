@@ -283,7 +283,8 @@
                 }, 
                 "parameters": { 
                     "resourcePrefix": { "value": "[parameters('resourcePrefix')]" },
-                    "svcFabSettings": { "value": "[variables('svcFabSettings')]"},
+                    "svcFabSettings": { "value": "[variables('svcFabSettings')]"},                    
+                    "durabilityLevel": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['durabilityLevel']]"},
                     "reliabilityLevel": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['svcfab']['reliabilityLevel']]"},
                     "managementEndpoint": { "value" : "[variables('servicefabricLBIP1')]" },
                     "nodeDetails": { "value": "[variables('sizeParameters')[parameters('deploymentSize')]['VMSSSettings']]" },
